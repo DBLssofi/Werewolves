@@ -15,6 +15,13 @@ function run(session: Session, commands: Command[]): Session {
   return s;
 }
 
+/** A night with no death: the wolves choose `victim` and the Salvator (seat 4) protects them. */
+const savedNight = (victim: number): Command[] => [
+  { kind: 'nightAction', action: { kind: 'protect', seat: 4, target: victim } },
+  { kind: 'nightAction', action: { kind: 'packVictim', target: victim, infect: false } },
+  { kind: 'resolveDawn' },
+];
+
 /** Everyone who must vote votes for `target`. */
 function everyoneVotes(s: Session, target: number, except: Record<number, number> = {}): Command {
   const tied = s.revote ?? [];
@@ -100,7 +107,7 @@ describe('commands in the wrong place are refused', () => {
 
   test('no voting at night, no night action by day', () => {
     expect(dispatch(s, everyoneVotes(s, 0))).toBe('wrongPhase');
-    const day = run(s, [{ kind: 'resolveDawn' }, { kind: 'startDay' }]);
+    const day = run(s, [...savedNight(7), { kind: 'startDay' }]);
     expect(dispatch(day, { kind: 'nightAction', action: { kind: 'seerCheck', seat: 2, target: 0 } })).toBe('wrongPhase');
   });
 
@@ -109,16 +116,51 @@ describe('commands in the wrong place are refused', () => {
   });
 
   test('one execution vote per day', () => {
-    const day = run(s, [{ kind: 'resolveDawn' }, { kind: 'startDay' }]);
+    const day = run(s, [...savedNight(7), { kind: 'startDay' }]);
     const voted = run(day, [everyoneVotes(day, 6)]);
     expect(dispatch(voted, everyoneVotes(voted, 7))).toBe('alreadyVoted');
   });
 });
 
+describe('calls that must be answered', () => {
+  test('the wolves must choose a victim before dawn', () => {
+    const s = newSession(gameOf(CORE));
+    expect(dispatch(s, { kind: 'resolveDawn' })).toBe('mustAct');
+    const chosen = run(s, [{ kind: 'nightAction', action: { kind: 'packVictim', target: 7, infect: false } }]);
+    expect(typeof dispatch(chosen, { kind: 'resolveDawn' })).toBe('object');
+  });
+
+  test('not when the wolves cannot kill tonight (Priest night)', () => {
+    const g = gameOf(['werewolf', 'werewolf', 'seer', 'witch', 'priest', 'villager', 'villager', 'villager']);
+    let s = run(newSession(g), [
+      { kind: 'nightAction', action: { kind: 'packVictim', target: 7, infect: false } },
+      { kind: 'resolveDawn' },
+      { kind: 'startDay' },
+      { kind: 'endDay' },
+      { kind: 'nightAction', action: { kind: 'pray', seat: 4 } },
+    ]);
+    expect(typeof dispatch(s, { kind: 'resolveDawn' })).toBe('object');
+  });
+
+  test('the Cat must scratch a wolf on her scratch night', () => {
+    const g = gameOf(['werewolf', 'werewolf', 'seer', 'witch', 'cat', 'villager', 'villager', 'villager']);
+    let s = run(newSession(g), [
+      { kind: 'nightAction', action: { kind: 'packVictim', target: 4, infect: false } },
+      { kind: 'resolveDawn' },
+      { kind: 'startDay' },
+      { kind: 'endDay' },
+      { kind: 'nightAction', action: { kind: 'packVictim', target: 7, infect: false } },
+    ]);
+    expect(dispatch(s, { kind: 'resolveDawn' })).toBe('mustAct');
+    s = run(s, [{ kind: 'nightAction', action: { kind: 'catScratch', seat: 4, target: 0 } }]);
+    expect(typeof dispatch(s, { kind: 'resolveDawn' })).toBe('object');
+  });
+});
+
 describe('ties', () => {
   test('a tie on Day 2 needs a revote before night falls', () => {
-    let s = run(newSession(gameOf(CORE)), [{ kind: 'resolveDawn' }, { kind: 'startDay' }, { kind: 'endDay' }]);
-    s = run(s, [{ kind: 'resolveDawn' }, { kind: 'startDay' }]);
+    let s = run(newSession(gameOf(CORE)), [...savedNight(7), { kind: 'startDay' }, { kind: 'endDay' }]);
+    s = run(s, [...savedNight(6), { kind: 'startDay' }]);
     const tie = everyoneVotes(s, 6, { 0: 7, 1: 7, 2: 7, 3: 7 });
     s = run(s, [tie]);
     expect(s.revote).toEqual([6, 7]);
@@ -132,7 +174,12 @@ describe('ties', () => {
 describe('the Angel', () => {
   test('voted out on the first voting day: the game ends at once', () => {
     const g = gameOf(['werewolf', 'werewolf', 'seer', 'witch', 'angel', 'villager', 'villager', 'villager']);
-    let s = run(newSession(g), [{ kind: 'resolveDawn' }, { kind: 'startDay' }]);
+    let s = run(newSession(g), [
+      { kind: 'nightAction', action: { kind: 'packVictim', target: 7, infect: false } },
+      { kind: 'nightAction', action: { kind: 'heal', seat: 3, target: 7 } },
+      { kind: 'resolveDawn' },
+      { kind: 'startDay' },
+    ]);
     s = run(s, [everyoneVotes(s, 4, { 4: 0 })]);
     expect(s.state.phase).toEqual({ kind: 'over', result: { kind: 'solo', seat: 4, roleId: 'angel' } });
   });
@@ -176,7 +223,12 @@ describe('undo', () => {
 describe('calls', () => {
   test('tonight’s calls follow what has happened (a Priest night)', () => {
     const g = gameOf(['werewolf', 'werewolf', 'seer', 'witch', 'priest', 'villager', 'villager', 'villager']);
-    let s = run(newSession(g), [{ kind: 'resolveDawn' }, { kind: 'startDay' }, { kind: 'endDay' }]);
+    let s = run(newSession(g), [
+      { kind: 'nightAction', action: { kind: 'packVictim', target: 7, infect: false } },
+      { kind: 'resolveDawn' },
+      { kind: 'startDay' },
+      { kind: 'endDay' },
+    ]);
     expect(currentCalls(s).some((c) => c.callId === 'witch')).toBe(true);
     s = run(s, [{ kind: 'nightAction', action: { kind: 'pray', seat: 4 } }]);
     expect(currentCalls(s).some((c) => c.callId === 'witch')).toBe(false);

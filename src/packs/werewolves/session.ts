@@ -147,7 +147,8 @@ export type SessionError =
   | 'revotePending'
   | 'alreadyVoted'
   | 'notAGhost'
-  | 'badLetter';
+  | 'badLetter'
+  | 'mustAct';
 
 /** Prompts that must be answered before the game moves on (and before the win check). */
 const ELIMINATION_PROMPTS = new Set<Prompt['kind']>(['hunterShot', 'catScratchNow']);
@@ -253,6 +254,7 @@ function apply(s: Session, c: Command): Session | SessionError {
 
     case 'resolveDawn': {
       if (!isNight || !s.night) return 'wrongPhase';
+      if (unansweredMustCalls(s).length > 0) return 'mustAct';
       const r = resolveDawn(s.state, s.night);
       return log(
         { ...s, state: r.state, night: null, prompts: [...s.prompts, ...r.prompts] },
@@ -379,6 +381,20 @@ function apply(s: Session, c: Command): Session | SessionError {
 }
 
 // ─── what the screens show ─────────────────────────────────
+
+/**
+ * Calls that may not be skipped (Role Compendium): the pack must choose a victim when it can kill,
+ * and a Cat on her scratch night must choose a wolf. Returns the unanswered ones.
+ */
+export function unansweredMustCalls(s: Session): NightCall[] {
+  if (!s.night) return [];
+  const record = s.night;
+  return currentCalls(s).filter((call) => {
+    if (call.callId === 'pack') return call.acting.length > 0 && call.restriction !== 'noKill' && record.pack === null;
+    if (call.callId === 'cat') return call.acting.some((seat) => !record.catScratch.some((c) => c.cat === seat));
+    return false;
+  });
+}
 
 /** Tonight's calls, in order, given what has happened so far (prayer, Devil Wolf block, jail). */
 export function currentCalls(s: Session): NightCall[] {

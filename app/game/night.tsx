@@ -146,9 +146,12 @@ export default function Night() {
   const title = copying ? t('night.asRole', { role: role('doppelganger'), copied: callName }) : callName;
   const woken = item.kind === 'pack' ? [...call.acting, ...call.crossed] : [seat as number];
   const spec = callSpec(call.callId, { state, night, step: call.step, seat });
-  const forms = acting ? spec.forms : [];
+  // On a Priest night the wolves wake without a victim.
+  const forms = acting && call.restriction !== 'noKill' ? spec.forms : [];
   const activeForm = form ?? (forms.length === 1 ? forms[0] ?? null : null);
   const done = submitted && !activeForm?.repeatable;
+  // The pack must choose a victim and a Cat must scratch a wolf: no skipping (Role Compendium).
+  const mustAct = forms.length > 0 && (call.callId === 'pack' || call.callId === 'cat');
 
   const submit = (roleId?: string) => {
     if (!activeForm) return;
@@ -172,7 +175,9 @@ export default function Night() {
               onPress={() => submit()}
             />
           )}
-          <Button kind={done || !acting || forms.length === 0 ? 'primary' : 'secondary'} label={done || !acting || forms.length === 0 ? t('common.next') : t('night.skip')} onPress={() => finish(woken)} />
+          {!(mustAct && !done) && (
+            <Button kind={done || !acting || forms.length === 0 ? 'primary' : 'secondary'} label={done || !acting || forms.length === 0 ? t('common.next') : t('night.skip')} onPress={() => finish(woken)} />
+          )}
         </>
       }
     >
@@ -210,7 +215,13 @@ export default function Night() {
             </View>
           )}
           {(activeForm.input === 'one' || activeForm.input === 'two') && (
-            <SeatGrid state={state} picked={picked} onChange={setPicked} max={activeForm.input === 'two' ? 2 : 1} />
+            <SeatGrid
+              state={state}
+              picked={picked}
+              onChange={setPicked}
+              max={activeForm.input === 'two' ? 2 : 1}
+              only={item.kind === 'pack' && activeForm.id !== 'littleGirlCaught' ? notPack(state, woken) : undefined}
+            />
           )}
           {activeForm.input === 'none' && <Button label={t(`forms.${activeForm.id}`)} onPress={() => submit()} />}
         </>
@@ -223,6 +234,13 @@ export default function Night() {
       {submitted && <LastResult />}
     </Screen>
   );
+}
+
+/** The pack can't attack its own: everyone who woke with it (and a sleeping Dream Wolf) is left out. */
+function notPack(state: GameState, pack: number[]): number[] {
+  return state.players
+    .filter((p) => p.alive && !pack.includes(p.seat) && p.roleId !== 'dream_wolf' && !p.infected && !p.turned)
+    .map((p) => p.seat);
 }
 
 /** What the narrator shows or points out before the choice. */

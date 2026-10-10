@@ -407,7 +407,8 @@
   "revotePending": "A revote is due first.",
   "alreadyVoted": "The vote is done for today.",
   "notAGhost": "Not a ghost.",
-  "badLetter": "One letter only."
+  "badLetter": "One letter only.",
+  "mustAct": "The wolves must choose a victim, and a Cat on her scratch night must choose a wolf."
  },
  "parrotWords": [
   "umbrella",
