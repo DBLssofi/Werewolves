@@ -39,8 +39,25 @@ export const MEM = {
   revengeNight: 'revengeNight',
   /** Dream Wolf: awake (no other wolf left to wake with the pack). */
   awake: 'awake',
-  /** Shadow Wolf: holds a gained power that acts after the pack. */
-  afterPackPower: 'afterPackPower',
+  /** Avenger Wolf (or a Shadow Wolf with his power): the poisoners to find, as "3,5". */
+  revengeOn: 'revengeOn',
+  /** Shadow Wolf: the wolf powers gained, as role IDs "dark_wolf,mystic_wolf". */
+  shadowPowers: 'shadowPowers',
+  /** Shadow Wolf: the night he is tapped and shown a newly gained power. */
+  shadowShownNight: 'shadowShownNight',
+  /** A gained role works from this night (copiers). */
+  roleFromNight: 'roleFromNight',
+  /** The night the narrator taps this player and shows their new role card (Lady, Drunk). */
+  roleShownNight: 'roleShownNight',
+  /** Doppelganger: the role copied tonight, and the night. */
+  mirrorRole: 'mirrorRole',
+  mirrorNight: 'mirrorNight',
+  /** Lady: her husband's seat. */
+  husband: 'husband',
+  /** Fool: the three roles offered, as "seer,witch,hunter". */
+  foolOffer: 'foolOffer',
+  /** Ghost: may whisper a letter at each dawn from this night on. */
+  ghostFromNight: 'ghostFromNight',
   /** Bodyguard: the night on which he is shown the new Prince. */
   newPrinceNight: 'newPrinceNight',
 } as const;
@@ -51,6 +68,8 @@ export const PACK = {
   wolfPowersLost: 'wolfPowersLost',
   /** The night on which the wolves are sick (the night after eating the Diseased). */
   wolvesSickNight: 'wolvesSickNight',
+  /** The Drunk's trigger has happened (the first village-team elimination). */
+  drunkResolved: 'drunkResolved',
 } as const;
 
 function flag(p: Player, key: string): boolean {
@@ -60,6 +79,31 @@ function flag(p: Player, key: string): boolean {
 function count(p: Player, key: string): number {
   const v = p.memory[key];
   return typeof v === 'number' ? v : 0;
+}
+
+/** The wolf cards whose power the Shadow Wolf can gain. */
+export const SHADOW_GAINABLE = ['alpha_wolf', 'dark_wolf', 'devil_wolf', 'mystic_wolf', 'sneaky_wolf', 'avenger_wolf'] as const;
+
+/** The wolf powers a Shadow Wolf holds. */
+export function shadowPowers(p: Player): string[] {
+  const v = p.memory[MEM.shadowPowers];
+  return typeof v === 'string' && v.length > 0 ? v.split(',') : [];
+}
+
+/** Seat lists stored as "3,5". */
+export function seatList(p: Player, key: string): number[] {
+  const v = p.memory[key];
+  return typeof v === 'string' && v.length > 0 ? v.split(',').map(Number) : [];
+}
+
+/**
+ * Does this player hold a werewolf card's special power (its own card, or gained by the Shadow Wolf)?
+ * False once the wolves killed the Wise, or when the player's abilities were removed.
+ */
+export function holdsWolfPower(p: Player, state: GameState, power: string): boolean {
+  if (p.abilitiesRemoved || state.packState[PACK.wolfPowersLost] === true) return false;
+  if (p.roleId === power) return true;
+  return p.roleId === 'shadow_wolf' && shadowPowers(p).includes(power);
 }
 
 function currentNight(state: GameState): number {

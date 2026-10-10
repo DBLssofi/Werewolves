@@ -132,7 +132,7 @@ describe('Priest night', () => {
   const g = gameOf([
     'werewolf', 'dark_wolf', 'avenger_wolf', 'lonely_wolf', 'seer', 'witch', 'hero', 'thug', 'cat', 'forger', 'rat', 'villager',
   ]);
-  const prepared = withPlayer(withPlayer(g, 2, { memory: { revengeNight: 3 } }), 8, { memory: { scratchNight: 3 } });
+  const prepared = withPlayer(withPlayer(g, 2, { memory: { revengeNight: 3, revengeOn: '5' } }), 8, { memory: { scratchNight: 3 } });
   const calls = planNight(prepared, 3, facts({ prayed: true }));
 
   test('killing roles and the Witch are skipped completely', () => {
@@ -170,12 +170,12 @@ describe('blocked and jailed players are woken and shown crossed arms', () => {
   });
 
   test('a jailed wolf wakes with the pack but takes no part', () => {
-    const calls = planNight(g, 2, facts({ jailed: 0 }));
+    const calls = planNight(g, 2, facts({ jailed: [0] }));
     expect(call(calls, 'pack')).toMatchObject({ acting: [1, 2], crossed: [0] });
   });
 
   test('jail does not reach back to steps before the Warden', () => {
-    const calls = planNight(g, 2, facts({ jailed: 2 }));
+    const calls = planNight(g, 2, facts({ jailed: [2] }));
     expect(call(calls, 'devil_wolf', 2)).toMatchObject({ acting: [2] });
   });
 });
@@ -226,7 +226,7 @@ describe('special cases', () => {
   test('the Cat and the Avenger Wolf are called only on their trigger night', () => {
     let g = gameOf(['werewolf', 'avenger_wolf', 'cat', ...CORE.slice(2)]);
     expect(call(planNight(g, 2, NO_FACTS), 'cat')).toBeUndefined();
-    g = withPlayer(withPlayer(g, 2, { memory: { scratchNight: 2 } }), 1, { memory: { revengeNight: 2 } });
+    g = withPlayer(withPlayer(g, 2, { memory: { scratchNight: 2 } }), 1, { memory: { revengeNight: 2, revengeOn: '4' } });
     expect(call(planNight(g, 2, NO_FACTS), 'cat')).toMatchObject({ acting: [2] });
     expect(call(planNight(g, 2, NO_FACTS), 'avenger_wolf')).toMatchObject({ acting: [1] });
   });

@@ -6,13 +6,13 @@ export interface NightFacts {
   prayed: boolean;
   /** Seats blocked by the Devil Wolf at step 2 (affects steps after 2). */
   devilBlocked: number[];
-  /** Seat jailed by the Warden at step 3 (affects steps after 3), or null. */
-  jailed: number | null;
+  /** Seats jailed tonight: by the Warden at step 3, or by a Doppelganger copying him at step 4. */
+  jailed: number[];
   /** The wolves ate the Diseased last night: every wolf power is blocked tonight. */
   wolvesSick: boolean;
 }
 
-export const NO_FACTS: NightFacts = { prayed: false, devilBlocked: [], jailed: null, wolvesSick: false };
+export const NO_FACTS: NightFacts = { prayed: false, devilBlocked: [], jailed: [], wolvesSick: false };
 
 /**
  * One call the narrator makes.

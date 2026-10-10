@@ -9,13 +9,14 @@
 import type { NightCall, NightFacts } from '@/engine/night';
 import { inWindow } from '@/engine/schedule';
 import type { GameState, Player } from '@/engine/state';
-import { MEM } from './memory';
+import { MEM, PACK, seatList, shadowPowers } from './memory';
+import { roleActive, roleLinks } from './roleChange';
 import { getRole } from './roles';
 
 /** The master night order: which calls happen at each step, in order. */
 export const NIGHT_ORDER: readonly { step: number; callIds: readonly string[] }[] = [
   { step: 1, callIds: ['priest'] },
-  { step: 2, callIds: ['devil_wolf'] },
+  { step: 2, callIds: ['devil_wolf', 'shadow_wolf'] },
   { step: 3, callIds: ['warden'] },
   { step: 4, callIds: ['doppelganger'] },
   { step: 5, callIds: ['robber'] },
@@ -56,7 +57,16 @@ export const NIGHT_ORDER: readonly { step: number; callIds: readonly string[] }[
 ];
 
 /** Calls skipped completely on a Priest night (any reveal mode): the killing roles and the Witch. */
-const PRIEST_SKIPS = new Set(['avenger_wolf', 'lonely_wolf', 'witch', 'guest', 'cat', 'hero', 'thug', 'swordHolder']);
+export const PRIEST_SKIPS = new Set(['avenger_wolf', 'lonely_wolf', 'witch', 'guest', 'cat', 'hero', 'thug', 'swordHolder']);
+
+/**
+ * Roles the Doppelganger can never copy: the Priest (Narrator Guide, copiers), and — provisional,
+ * not yet confirmed — the copiers whose ability changes who they are (Robber, Faceless, Lady, Fool).
+ */
+export const MIRROR_NEVER = new Set(['priest', 'doppelganger', 'robber', 'faceless_villager', 'lady', 'fool']);
+
+/** Calls that are a werewolf card's special power: lost for good when the wolves kill the Wise. */
+const SPECIAL_WOLF_CALLS = new Set(['devil_wolf', 'dark_wolf', 'mystic_wolf', 'shadow_wolf', 'avenger_wolf']);
 
 /** Steps whose calls are wolf powers, blocked the night after the wolves ate the Diseased. */
 const WOLF_POWER_STEPS = new Set([2, 16, 17, 18, 19, 20, 21, 22, 23]);
@@ -71,7 +81,7 @@ function dealt(state: GameState, roleId: string): boolean {
 /** Is this seat blocked (Devil Wolf) or jailed (Warden) at this step? */
 function isBlocked(seat: number, step: number, facts: NightFacts): boolean {
   if (step > 2 && facts.devilBlocked.includes(seat)) return true;
-  if (step > 3 && facts.jailed === seat) return true;
+  if (step > 3 && facts.jailed.includes(seat)) return true;
   return false;
 }
 
@@ -90,6 +100,11 @@ function inRoleWindow(state: GameState, p: Player, callId: string, step: number,
       return seerAndGuest ? night % 2 === 0 : true;
     case 'devil_wolf':
       return state.settings.devilWolf === 'permanent' ? night <= 3 : true;
+    case 'shadow_wolf': {
+      const powers = shadowPowers(p);
+      if (step === 2) return powers.includes('devil_wolf') && (state.settings.devilWolf === 'permanent' ? night <= 3 : true);
+      return powers.includes('dark_wolf') || powers.includes('mystic_wolf') || (powers.includes('avenger_wolf') && revengeTonight(state, p, night));
+    }
     case 'lonely_wolf':
       return night % 2 === 1;
     case 'bodyguard':
@@ -97,17 +112,33 @@ function inRoleWindow(state: GameState, p: Player, callId: string, step: number,
     case 'cat':
       return num(p, MEM.scratchNight) === night;
     case 'avenger_wolf':
-      return num(p, MEM.revengeNight) === night;
-    case 'shadow_wolf':
-      return flag(p, MEM.afterPackPower);
+      return revengeTonight(state, p, night);
     default:
       return inWindow(getRole(callId).wakes, night);
   }
 }
 
+/** The Avenger's guesses are tonight, and one of the poisoners is still alive. */
+function revengeTonight(state: GameState, p: Player, night: number): boolean {
+  return num(p, MEM.revengeNight) === night && seatList(p, MEM.revengeOn).some((seat) => state.players[seat]?.alive);
+}
+
+/**
+ * Can a role act tonight at all (its window, the Priest's prayer)? Used for the Doppelganger's copy
+ * and the Puppeteer's control. `holder` is whoever holds the role (for roles with a personal trigger).
+ */
+export function roleCanActTonight(state: GameState, holder: Player, callId: string, night: number, prayed: boolean): boolean {
+  if (prayed && PRIEST_SKIPS.has(callId)) return false;
+  const role = getRole(callId);
+  if (callId === 'seer' && prayed && night % 2 === 0 && dealt(state, 'seer') && dealt(state, 'guest')) return true;
+  const steps = callId === 'seer' ? [26] : role.nightSteps.filter((step) => step > 0);
+  return steps.some((step) => inRoleWindow(state, holder, callId, step, night));
+}
+
 /** Has this holder nothing left to do tonight (woken, shown crossed arms)? */
-function usedUp(state: GameState, p: Player, callId: string, night: number): boolean {
+function usedUp(state: GameState, p: Player, callId: string, night: number, step: number): boolean {
   if (p.abilitiesRemoved) return true;
+  if (SPECIAL_WOLF_CALLS.has(callId) && state.packState[PACK.wolfPowersLost] === true) return true;
   switch (callId) {
     case 'priest':
       return night === 1 || flag(p, MEM.used);
@@ -117,11 +148,13 @@ function usedUp(state: GameState, p: Player, callId: string, night: number): boo
     case 'puppeteer':
     case 'cupid':
     case 'dark_cupid':
+      return flag(p, MEM.used);
+    // Copiers stay woken through Nights 1–3 after using their ability (crossed arms).
     case 'faceless_villager':
     case 'robber':
     case 'lady':
     case 'fool':
-      return flag(p, MEM.used);
+      return flag(p, MEM.used) || p.roleId !== callId;
     case 'thug':
       return !flag(p, MEM.unlocked) || flag(p, MEM.used);
     case 'witcher':
@@ -135,6 +168,12 @@ function usedUp(state: GameState, p: Player, callId: string, night: number): boo
       return flag(p, MEM.seerFound);
     case 'devil_wolf':
       return state.settings.devilWolf === 'permanent' && flag(p, MEM.used);
+    case 'shadow_wolf': {
+      if (step === 2) return state.settings.devilWolf === 'permanent' && flag(p, MEM.used);
+      const powers = shadowPowers(p);
+      const mysticLeft = powers.includes('mystic_wolf') && !flag(p, MEM.seerFound);
+      return !powers.includes('dark_wolf') && !mysticLeft && !(powers.includes('avenger_wolf') && revengeTonight(state, p, night));
+    }
     case 'doppelganger':
       return night % 2 === 1;
     default:
@@ -143,22 +182,36 @@ function usedUp(state: GameState, p: Player, callId: string, night: number): boo
 }
 
 /** Living members of the wolf pack tonight. */
-function packMembers(state: GameState): Player[] {
+function packMembers(state: GameState, night: number): Player[] {
   return state.players.filter((p) => {
     if (!p.alive) return false;
     if (p.infected || p.turned) return true;
     const role = getRole(p.roleId);
     if (p.roleId === 'dream_wolf') return flag(p, MEM.awake);
-    return role.wakesWithPack;
+    return role.wakesWithPack && roleActive(p, night);
   });
 }
 
-/** Holders of a role call: the Seer's slot also covers a promoted Apprentice Seer. */
-function holders(state: GameState, callId: string): Player[] {
-  if (callId === 'seer') {
-    return state.players.filter((p) => p.roleId === 'seer' || (p.roleId === 'apprentice_seer' && flag(p, MEM.promoted)));
-  }
-  return state.players.filter((p) => p.roleId === callId);
+const COPIER_CALLS = new Set(['robber', 'faceless_villager', 'lady', 'fool']);
+
+/** A Doppelganger copying this call tonight. */
+function mirroring(p: Player, callId: string, night: number): boolean {
+  return p.roleId === 'doppelganger' && p.memory[MEM.mirrorNight] === night && p.memory[MEM.mirrorRole] === callId;
+}
+
+/**
+ * Holders of a role call. The Seer's slot also covers a promoted Apprentice Seer. A copier is called
+ * through Nights 1–3 even after taking another role; a gained role is called from the next night.
+ * A Doppelganger copying the role tonight is called in its slot.
+ */
+function holders(state: GameState, callId: string, night: number): Player[] {
+  return state.players.filter((p) => {
+    if (mirroring(p, callId, night)) return true;
+    if (COPIER_CALLS.has(callId) && p.startRoleId === callId) return true;
+    const holds =
+      p.roleId === callId || (callId === 'seer' && p.roleId === 'apprentice_seer' && flag(p, MEM.promoted));
+    return holds && roleActive(p, night);
+  });
 }
 
 export function planNight(state: GameState, night: number, facts: NightFacts): NightCall[] {
@@ -173,7 +226,7 @@ export function planNight(state: GameState, night: number, facts: NightFacts): N
       const sick = facts.wolvesSick && WOLF_POWER_STEPS.has(step);
 
       if (callId === 'pack') {
-        const members = packMembers(state);
+        const members = packMembers(state, night);
         if (members.length === 0) continue;
         const acting: number[] = [];
         const crossed: number[] = [];
@@ -194,7 +247,7 @@ export function planNight(state: GameState, night: number, facts: NightFacts): N
         continue;
       }
 
-      const roleHolders = holders(state, callId);
+      const roleHolders = holders(state, callId, night);
       if (roleHolders.length === 0) continue;
       const acting: number[] = [];
       const crossed: number[] = [];
@@ -202,14 +255,17 @@ export function planNight(state: GameState, night: number, facts: NightFacts): N
       for (const p of roleHolders) {
         // On an even Priest night with both dealt, the Seer is called instead of the Guest.
         const seerReplacesGuest = callId === 'seer' && seerAndGuest && facts.prayed && night % 2 === 0;
-        const window = seerReplacesGuest || inRoleWindow(state, p, callId, step, night);
+        const copy = mirroring(p, callId, night);
+        const window = copy
+          ? callId !== 'triple_face' || inRoleWindow(state, p, callId, step, night)
+          : seerReplacesGuest || inRoleWindow(state, p, callId, step, night);
         if (!window) continue;
         if (!p.alive) {
           if (anonymous) aloud = true;
           continue;
         }
         const blocked = isBlocked(p.seat, step, facts) || sick || (facts.wolvesSick && p.infected);
-        if (blocked || usedUp(state, p, callId, night)) crossed.push(p.seat);
+        if (blocked || usedUp(state, p, callId, night, step)) crossed.push(p.seat);
         else acting.push(p.seat);
       }
       if (acting.length + crossed.length === 0 && !aloud) continue;
@@ -224,7 +280,35 @@ export function startOfNightFacts(state: GameState, night: number): NightFacts {
   return {
     prayed: false,
     devilBlocked: [],
-    jailed: null,
+    jailed: [],
     wolvesSick: state.packState['wolvesSickNight'] === night,
   };
+}
+
+/** A player the narrator taps at the start of the night (step 0) to show them something new. */
+export type StartTap =
+  /** The Lady or the Drunk: shown their new role card. */
+  | { seat: number; kind: 'newRole'; roleId: string; linked: number[] }
+  /** The Shadow Wolf: shown the card whose power he gained. */
+  | { seat: number; kind: 'shadowPower'; powers: string[] };
+
+export function startOfNightTaps(state: GameState, night: number): StartTap[] {
+  const taps: StartTap[] = [];
+  for (const p of state.players.filter((x) => x.alive)) {
+    if (num(p, MEM.roleShownNight) === night) taps.push({ seat: p.seat, kind: 'newRole', roleId: p.roleId, linked: roleLinks(state, p.seat) });
+    if (num(p, MEM.shadowShownNight) === night) taps.push({ seat: p.seat, kind: 'shadowPower', powers: shadowPowers(p) });
+  }
+  return taps;
+}
+
+/** Dead Ghosts who whisper a letter at this dawn (R0). */
+export function ghostsAtDawn(state: GameState, night: number): number[] {
+  return state.players
+    .filter((p) => !p.alive && p.roleId === 'ghost' && (num(p, MEM.ghostFromNight) ?? Infinity) <= night)
+    .map((p) => p.seat);
+}
+
+/** A Ghost's letter: exactly one character, not a space (the screen shows an alphabet for the game's language). */
+export function isGhostLetter(letter: string): boolean {
+  return [...letter].length === 1 && letter.trim().length === 1;
 }

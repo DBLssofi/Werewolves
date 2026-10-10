@@ -88,8 +88,8 @@ describe('Witch', () => {
   test('is shown "nobody" when the victim is protected, and the Knight when he takes the attack', () => {
     const { state, record } = start();
     expect(witchSees(state, record)).toBe(6);
-    expect(witchSees(state, { ...record, protect: 6 })).toBeNull();
-    expect(witchSees(state, { ...record, guard: { knight: 5, target: 6 } })).toBe(5);
+    expect(witchSees(state, { ...record, protect: [6] })).toBeNull();
+    expect(witchSees(state, { ...record, guard: [{ knight: 5, target: 6 }] })).toBe(5);
     expect(witchSees(state, { ...record, pack: { target: 6, infect: true } })).toBeNull();
   });
 });

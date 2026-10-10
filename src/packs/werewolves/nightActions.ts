@@ -4,37 +4,47 @@
  * immediately, because the narrator shows it during the night.
  * Nothing is resolved here: deaths and other results happen together at dawn (dawn.ts).
  *
- * Not yet covered (next step): Doppelganger, Robber, Faceless Villager, Lady, Fool, Drunk,
- * Puppeteer, Shadow Wolf powers, Avenger Wolf guesses, Devil Wolf permanent version.
+ * Role changes caused by eliminations (Lady, Drunk, Shadow Wolf gains, Ghost) happen in elimination.ts.
  */
 import type { NightFacts } from '@/engine/night';
 import { isWolf, neighbours, type GameState, type Player } from '@/engine/state';
-import { MEM, PACK } from './memory';
-import { getRole } from './roles';
+import { MEM, PACK, holdsWolfPower, seatList, shadowPowers } from './memory';
+import { MIRROR_NEVER, roleCanActTonight } from './nightPlan';
+import { becomeRole, personMemory, roleActive, roleLinks, roleMemory } from './roleChange';
+import { ROLES, getRole } from './roles';
+import { createRng, shuffle } from '@/engine/setup';
 
 export interface NightRecord {
   night: number;
   facts: NightFacts;
   /** Seats that opened their eyes for a role tonight (for the Owl). */
   woken: number[];
-  protect: number | null;
-  guard: { knight: number; target: number } | null;
+  /** Lists: a Doppelganger copying a role can act alongside the real holder on the same night. */
+  protect: number[];
+  guard: { knight: number; target: number }[];
   trap: { witcher: number; target: number } | null;
   forged: { forger: number; item: 'shield' | 'sword'; target: number }[];
-  pack: { target: number; infect: boolean } | null;
+  /** The pack's victim; `by` is the seat whose infection was used (Alpha Wolf or Shadow Wolf). */
+  pack: { target: number; infect: boolean; by?: number } | null;
   paralysed: number | null;
   loneHunt: { wolf: number; target: number } | null;
-  heal: { by: number; target: number } | null;
+  heal: { by: number; target: number }[];
   poisons: { by: number; target: number }[];
-  guest: { guest: number; host: number } | null;
-  heroStrike: { hero: number; target: number } | null;
-  thugStrike: { thug: number; target: number } | null;
+  guest: { guest: number; host: number }[];
+  heroStrike: { hero: number; target: number }[];
+  thugStrike: { thug: number; target: number }[];
   swordStrikes: { holder: number; target: number }[];
-  catScratch: { cat: number; target: number } | null;
+  catScratch: { cat: number; target: number }[];
   recruits: number[];
   plague: { rat: number; target: number } | null;
   cured: number[];
-  swap: [number, number] | null;
+  swap: [number, number][];
+  /** The Puppeteer took control of the Seer's check or the Witch's poison. */
+  puppet: { puppeteer: number; mode: 'sight' | 'poison'; target: number } | null;
+  /** The Avenger Wolf's guesses tonight. */
+  revengeGuesses: { by: number; target: number; right: boolean }[];
+  /** A right guess: the poisoner dies at dawn, unstoppable. */
+  revenge: { by: number; target: number } | null;
 }
 
 export function startNightRecord(night: number, facts: NightFacts): NightRecord {
@@ -42,24 +52,27 @@ export function startNightRecord(night: number, facts: NightFacts): NightRecord 
     night,
     facts,
     woken: [],
-    protect: null,
-    guard: null,
+    protect: [],
+    guard: [],
     trap: null,
     forged: [],
     pack: null,
     paralysed: null,
     loneHunt: null,
-    heal: null,
+    heal: [],
     poisons: [],
-    guest: null,
-    heroStrike: null,
-    thugStrike: null,
+    guest: [],
+    heroStrike: [],
+    thugStrike: [],
     swordStrikes: [],
-    catScratch: null,
+    catScratch: [],
     recruits: [],
     plague: null,
     cured: [],
-    swap: null,
+    swap: [],
+    puppet: null,
+    revengeGuesses: [],
+    revenge: null,
   };
 }
 
@@ -94,7 +107,14 @@ export type NightAction =
   | { kind: 'plague'; seat: number; target: number }
   | { kind: 'examine'; seat: number; target: number }
   | { kind: 'swap'; seat: number; a: number; b: number }
-  | { kind: 'owlCheck'; seat: number; target: number };
+  | { kind: 'owlCheck'; seat: number; target: number }
+  | { kind: 'mirror'; seat: number; target: number }
+  | { kind: 'steal'; seat: number; target: number }
+  | { kind: 'takeFace'; seat: number; target: number }
+  | { kind: 'marry'; seat: number; target: number }
+  | { kind: 'foolChoose'; seat: number; roleId: string }
+  | { kind: 'puppet'; seat: number; mode: 'sight' | 'poison'; target: number }
+  | { kind: 'revengeGuess'; seat: number; target: number };
 
 export type NightError =
   | 'noSuchPlayer'
@@ -114,7 +134,11 @@ export type NightError =
   | 'notShownToWitch'
   | 'samePlayer'
   | 'alreadyInCult'
-  | 'alreadyPlagued';
+  | 'alreadyPlagued'
+  | 'blocked'
+  | 'powersLost'
+  | 'notOffered'
+  | 'controlled';
 
 /** Thumb answers: "up"/"down" exactly as the narrator shows them. */
 export type CheckAnswer = 'thumbUp' | 'thumbDown';
@@ -126,6 +150,14 @@ export interface ActionOk {
   answer?: CheckAnswer;
   /** For the P.I.: the seats in the checked group. */
   group?: number[];
+  /** The ability did nothing: the player is shown crossed arms. For the Robber and Puppeteer it is not spent. */
+  failed?: boolean;
+  /** The role card the narrator silently shows the player (copiers). */
+  shownRole?: string;
+  /** Players the narrator also points out (a stolen Musketeer's Prince, a new Minion's wolves…). */
+  linked?: number[];
+  /** A player tapped after the actor sleeps (the Robber's victim: "you are now a plain Villager"). */
+  tapped?: number;
 }
 
 // ─── helpers ───────────────────────────────────────────────
@@ -158,6 +190,8 @@ export function seerSees(p: Player, state: GameState): 'wolf' | 'notWolf' {
   if (p.turned) return 'wolf';
   if (p.infected) return 'notWolf';
   if (p.roleId === 'sneaky_wolf' && state.packState[PACK.wolfPowersLost] === true) return 'wolf';
+  // A Shadow Wolf who gained the Sneaky Wolf's hiding is hidden too.
+  if (p.roleId === 'shadow_wolf' && holdsWolfPower(p, state, 'sneaky_wolf')) return 'notWolf';
   return getRole(p.roleId).seenAs.seer;
 }
 
@@ -170,6 +204,37 @@ export function wolfCheckSees(p: Player): 'wolf' | 'notWolf' {
 /** What the Aura Seer sees: an infected player shows their old role (the role ID is unchanged). */
 export function auraSees(p: Player): boolean {
   return getRole(p.roleId).seenAs.auraAbility;
+}
+
+/** The role a player acts as tonight: a Doppelganger acts as the role he copied. */
+export function actingRole(p: Player, night: number): string {
+  if (p.roleId === 'doppelganger' && p.memory[MEM.mirrorNight] === night && typeof p.memory[MEM.mirrorRole] === 'string') {
+    return p.memory[MEM.mirrorRole] as string;
+  }
+  return p.roleId;
+}
+
+/** A wolf card, or an infected or turned player. */
+function isWolfOrInfected(p: Player): boolean {
+  return p.infected || p.turned || getRole(p.roleId).wolfCard;
+}
+
+/** Roles a Fool may be offered: village roles with an ability, not dealt, needing no partner card. */
+const FOOL_NEVER = new Set(['musketeer', 'bodyguard', 'apprentice_seer', 'beholder', 'doctor', 'fool']);
+
+/** The three roles offered to the Fool (fixed for the game: drawn from the seed). */
+export function foolOffer(state: GameState, seat: number): string[] {
+  const dealt = new Set(state.players.map((p) => p.startRoleId));
+  const pool = ROLES.filter(
+    (r) =>
+      r.team === 'village' &&
+      r.seenAs.auraAbility &&
+      !r.requires &&
+      (r.minCopies ?? 1) <= 1 &&
+      !FOOL_NEVER.has(r.id) &&
+      !dealt.has(r.id),
+  ).map((r) => r.id);
+  return shuffle(pool, createRng(state.seed * 7919 + seat * 31 + 8)).slice(0, 3);
 }
 
 /** Counts as the Seer for the Mystic Wolf and the Beholder. */
@@ -189,6 +254,20 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
   const actor = actorSeat === null ? undefined : player(state, actorSeat);
   if (actorSeat !== null && !actor) return 'noSuchPlayer';
   if (actor && !actor.alive) return 'actorDead';
+  if (actor) {
+    // A gained role works from the next night.
+    if (!roleActive(actor, night)) return 'notTonight';
+    if (actor.abilitiesRemoved) return 'blocked';
+    // Devil Wolf blocks (step 2) affect later steps; the Warden's jail (step 3) affects later steps.
+    const devilBlocked = record.facts.devilBlocked.includes(actor.seat);
+    const jailed = record.facts.jailed.includes(actor.seat);
+    if (action.kind === 'jail' && devilBlocked) return 'blocked';
+    if (action.kind !== 'pray' && action.kind !== 'devilBlock' && action.kind !== 'jail' && (devilBlocked || jailed)) {
+      return 'blocked';
+    }
+    // The night after eating the Diseased, the wolves (and infected players) can do nothing.
+    if (record.facts.wolvesSick && isWolfOrInfected(actor)) return 'blocked';
+  }
 
   const targetOf = (seat: number): Player | NightError => {
     const t = player(state, seat);
@@ -196,11 +275,21 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
     if (!t.alive) return 'targetDead';
     return t;
   };
-  const needRole = (...ids: string[]): NightError | null => (actor && ids.includes(actor.roleId) ? null : 'wrongRole');
-  /** Rule "not the same player 2 nights in a row", per holder. */
+  const acting = actor ? actingRole(actor, night) : null;
+  const needRole = (...ids: string[]): NightError | null => (acting !== null && ids.includes(acting) ? null : 'wrongRole');
+  /** A werewolf card's power, held on the card or gained by the Shadow Wolf. */
+  const needPower = (power: string): NightError | null => {
+    if (!actor) return 'wrongRole';
+    if (holdsWolfPower(actor, state, power)) return null;
+    const holdsCard = actor.roleId === power || (actor.roleId === 'shadow_wolf' && shadowPowers(actor).includes(power));
+    return holdsCard ? 'powersLost' : 'wrongRole';
+  };
+  /** Rule "not the same player 2 nights in a row", per holder and per ability. */
+  const lastKey = `last.${action.kind}`;
+  const lastNightKey = `last.${action.kind}.night`;
   const notRepeat = (target: number): NightError | null =>
-    actor && num(actor, 'lastTarget') === target && num(actor, 'lastTargetNight') === night - 1 ? 'sameAsLastNight' : null;
-  const remember = (s: GameState, target: number) => setMemory(s, actorSeat as number, { lastTarget: target, lastTargetNight: night });
+    actor && num(actor, lastKey) === target && num(actor, lastNightKey) === night - 1 ? 'sameAsLastNight' : null;
+  const remember = (s: GameState, target: number) => setMemory(s, actorSeat as number, { [lastKey]: target, [lastNightKey]: night });
   const ok = (s: GameState, r: NightRecord, extra: Partial<ActionOk> = {}): ActionOk => ({ state: s, record: r, ...extra });
 
   switch (action.kind) {
@@ -213,15 +302,24 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
     }
 
     case 'devilBlock': {
-      const e = needRole('devil_wolf') ?? notRepeat(action.target);
+      const permanent = state.settings.devilWolf === 'permanent';
+      const e = needPower('devil_wolf') ?? (permanent ? null : notRepeat(action.target));
       if (e) return e;
+      if (permanent && night > 3) return 'notTonight';
+      if (permanent && flag(actor as Player, MEM.used)) return 'used';
       const t = targetOf(action.target);
       if (typeof t === 'string') return t;
       if (isWolf(t, getRole)) return 'targetIsWolf';
-      return ok(remember(state, action.target), {
+      const blockedRecord = {
         ...record,
         facts: { ...record.facts, devilBlocked: [...record.facts.devilBlocked, action.target] },
-      });
+      };
+      if (permanent) {
+        // Every ability lost for good (active, passive and unused killing abilities); the team doesn't change.
+        const s = setPlayer(setMemory(state, action.seat, { [MEM.used]: true }), action.target, { abilitiesRemoved: true });
+        return ok(s, blockedRecord);
+      }
+      return ok(remember(state, action.target), blockedRecord);
     }
 
     case 'jail': {
@@ -230,7 +328,7 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
       if (action.target === action.seat) return 'notSelf';
       const t = targetOf(action.target);
       if (typeof t === 'string') return t;
-      return ok(remember(state, action.target), { ...record, facts: { ...record.facts, jailed: action.target } });
+      return ok(remember(state, action.target), { ...record, facts: { ...record.facts, jailed: [...record.facts.jailed, action.target] } });
     }
 
     case 'protect': {
@@ -238,7 +336,7 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
       if (e) return e;
       const t = targetOf(action.target);
       if (typeof t === 'string') return t;
-      return ok(remember(state, action.target), { ...record, protect: action.target });
+      return ok(remember(state, action.target), { ...record, protect: [...record.protect, action.target] });
     }
 
     case 'guard': {
@@ -247,7 +345,7 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
       if (action.target === action.seat) return 'notSelf';
       const t = targetOf(action.target);
       if (typeof t === 'string') return t;
-      return ok(remember(state, action.target), { ...record, guard: { knight: action.seat, target: action.target } });
+      return ok(remember(state, action.target), { ...record, guard: [...record.guard, { knight: action.seat, target: action.target }] });
     }
 
     case 'setTrap': {
@@ -267,7 +365,7 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
       const e = needRole('forger');
       if (e) return e;
       if (action.target === action.seat) return 'notSelf';
-      if (record.forged.length > 0) return 'used';
+      if (record.forged.some((f) => f.forger === action.seat)) return 'used';
       const t = targetOf(action.target);
       if (typeof t === 'string') return t;
       const madeKey = action.item === 'shield' ? MEM.shieldsMade : MEM.swordsMade;
@@ -325,18 +423,27 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
 
     case 'packVictim': {
       if (record.facts.prayed) return 'notTonight';
+      if (record.facts.wolvesSick) return 'blocked';
       if (record.pack) return 'alreadyAttacked';
       const t = targetOf(action.target);
       if (typeof t === 'string') return t;
       if (inPack(t)) return 'targetIsWolf';
-      if (action.infect) {
-        const alpha = state.players.find((p) => p.alive && p.roleId === 'alpha_wolf');
-        if (!alpha) return 'wrongRole';
-        if (alpha.abilitiesRemoved || state.packState[PACK.wolfPowersLost] === true) return 'used';
-        if ((num(alpha, 'infectionsUsed') ?? 0) >= state.settings.alphaInfections) return 'used';
-        if (record.facts.jailed === alpha.seat) return 'wrongRole';
-      }
-      return ok(state, { ...record, pack: { target: action.target, infect: action.infect } });
+      if (!action.infect) return ok(state, { ...record, pack: { target: action.target, infect: false } });
+      // The infection: the Alpha Wolf's, or a Shadow Wolf's who gained it.
+      const holders = state.players.filter(
+        (p) => p.alive && (p.roleId === 'alpha_wolf' || (p.roleId === 'shadow_wolf' && shadowPowers(p).includes('alpha_wolf'))),
+      );
+      if (holders.length === 0) return 'wrongRole';
+      const usable = holders.filter(
+        (p) =>
+          holdsWolfPower(p, state, 'alpha_wolf') &&
+          (num(p, 'infectionsUsed') ?? 0) < state.settings.alphaInfections &&
+          !record.facts.jailed.includes(p.seat) &&
+          !record.facts.devilBlocked.includes(p.seat),
+      );
+      const by = usable[0];
+      if (!by) return holders.some((p) => !holdsWolfPower(p, state, 'alpha_wolf')) ? 'powersLost' : 'used';
+      return ok(state, { ...record, pack: { target: action.target, infect: true, by: by.seat } });
     }
 
     case 'littleGirlCaught': {
@@ -349,7 +456,7 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
     }
 
     case 'paralyse': {
-      const e = needRole('dark_wolf') ?? notRepeat(action.target);
+      const e = needPower('dark_wolf') ?? notRepeat(action.target);
       if (e) return e;
       const t = targetOf(action.target);
       if (typeof t === 'string') return t;
@@ -357,7 +464,7 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
     }
 
     case 'mysticCheck': {
-      const e = needRole('mystic_wolf');
+      const e = needPower('mystic_wolf');
       if (e) return e;
       if (flag(actor as Player, MEM.seerFound)) return 'used';
       const t = targetOf(action.target);
@@ -381,22 +488,22 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
       const e = needRole('witch', 'triple_face');
       if (e) return e;
       const p = actor as Player;
-      if (p.roleId === 'triple_face' && night !== 2) return 'notTonight';
+      if (acting === 'triple_face' && night !== 2) return 'notTonight';
       if (flag(p, MEM.healUsed)) return 'used';
-      if (p.roleId === 'witch' && record.poisons.some((x) => x.by === p.seat)) return 'onePotionPerNight';
+      if (acting === 'witch' && record.poisons.some((x) => x.by === p.seat)) return 'onePotionPerNight';
       // She may only heal the pack's victim shown to her.
       if (!record.pack || record.pack.infect || record.pack.target !== action.target) return 'notShownToWitch';
-      return ok(setMemory(state, p.seat, { [MEM.healUsed]: true }), { ...record, heal: { by: p.seat, target: action.target } });
+      return ok(setMemory(state, p.seat, { [MEM.healUsed]: true }), { ...record, heal: [...record.heal, { by: p.seat, target: action.target }] });
     }
 
     case 'poison': {
       const e = needRole('witch', 'triple_face');
       if (e) return e;
       const p = actor as Player;
-      if (p.roleId === 'triple_face' && night !== 2) return 'notTonight';
+      if (acting === 'triple_face' && night !== 2) return 'notTonight';
       if (flag(p, MEM.poisonUsed)) return 'used';
       if (action.target === p.seat) return 'notSelf';
-      if (p.roleId === 'witch' && record.heal?.by === p.seat) return 'onePotionPerNight';
+      if (acting === 'witch' && record.heal.some((h) => h.by === p.seat)) return 'onePotionPerNight';
       const t = targetOf(action.target);
       if (typeof t === 'string') return t;
       return ok(setMemory(state, p.seat, { [MEM.poisonUsed]: true }), {
@@ -407,9 +514,11 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
 
     case 'seerCheck': {
       const p = actor as Player;
-      const allowed = isSeer(p) || (p.roleId === 'triple_face' && night === 1);
+      const allowed = isSeer(p) || acting === 'seer' || (acting === 'triple_face' && night === 1);
       if (!allowed) return 'wrongRole';
       if (action.target === p.seat) return 'notSelf';
+      // The Puppeteer chose tonight's check for the Seer.
+      if (record.puppet?.mode === 'sight' && isSeer(p) && record.puppet.target !== action.target) return 'controlled';
       const t = targetOf(action.target);
       if (typeof t === 'string') return t;
       return ok(state, record, { answer: seerSees(t, state) === 'wolf' ? 'thumbDown' : 'thumbUp' });
@@ -421,7 +530,7 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
       if (action.target === action.seat) return 'notSelf';
       const t = targetOf(action.target);
       if (typeof t === 'string') return t;
-      return ok(state, { ...record, guest: { guest: action.seat, host: action.target } });
+      return ok(state, { ...record, guest: [...record.guest, { guest: action.seat, host: action.target }] });
     }
 
     case 'auraCheck': {
@@ -448,11 +557,11 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
     case 'catScratch': {
       const e = needRole('cat');
       if (e) return e;
-      if (num(actor as Player, MEM.scratchNight) !== night) return 'notTonight';
+      if (actor?.roleId === 'cat' && num(actor, MEM.scratchNight) !== night) return 'notTonight';
       const t = targetOf(action.target);
       if (typeof t === 'string') return t;
       if (!isWolf(t, getRole) && !(t.roleId === 'lonely_wolf')) return 'notAWolf';
-      return ok(state, { ...record, catScratch: { cat: action.seat, target: action.target } });
+      return ok(state, { ...record, catScratch: [...record.catScratch, { cat: action.seat, target: action.target }] });
     }
 
     case 'heroStrike': {
@@ -464,7 +573,7 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
       if (typeof t === 'string') return t;
       return ok(setMemory(state, action.seat, { [MEM.used]: true }), {
         ...record,
-        heroStrike: { hero: action.seat, target: action.target },
+        heroStrike: [...record.heroStrike, { hero: action.seat, target: action.target }],
       });
     }
 
@@ -476,7 +585,7 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
       if (action.target === action.seat) return 'notSelf';
       const t = targetOf(action.target);
       if (typeof t === 'string') return t;
-      return ok(setMemory(state, p.seat, { [MEM.used]: true }), { ...record, thugStrike: { thug: p.seat, target: action.target } });
+      return ok(setMemory(state, p.seat, { [MEM.used]: true }), { ...record, thugStrike: [...record.thugStrike, { thug: p.seat, target: action.target }] });
     }
 
     case 'swordStrike': {
@@ -528,7 +637,7 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
       const b = targetOf(action.b);
       if (typeof a === 'string') return a;
       if (typeof b === 'string') return b;
-      return ok(state, { ...record, swap: [action.a, action.b] });
+      return ok(state, { ...record, swap: [...record.swap, [action.a, action.b]] });
     }
 
     case 'owlCheck': {
@@ -538,6 +647,135 @@ export function applyNightAction(state: GameState, record: NightRecord, action: 
       const t = targetOf(action.target);
       if (typeof t === 'string') return t;
       return ok(state, record, { answer: record.woken.includes(t.seat) ? 'thumbUp' : 'thumbDown' });
+    }
+
+    // ─── copiers ───────────────────────────────────────────
+
+    case 'mirror': {
+      if (actor?.roleId !== 'doppelganger') return 'wrongRole';
+      if (night % 2 === 1) return 'notTonight';
+      if (action.target === action.seat) return 'notSelf';
+      const t = targetOf(action.target);
+      if (typeof t === 'string') return t;
+      const callId = t.roleId === 'apprentice_seer' && flag(t, MEM.promoted) ? 'seer' : t.roleId;
+      const copyable =
+        !t.infected &&
+        !t.turned &&
+        !t.abilitiesRemoved &&
+        getRole(t.roleId).team === 'village' &&
+        !MIRROR_NEVER.has(callId) &&
+        roleCanActTonight(state, t, callId, night, record.facts.prayed);
+      // Fresh uses for tonight only: the copied role's memory starts empty every time.
+      const base = personMemory(actor);
+      if (!copyable) {
+        return ok({ ...state, players: state.players.map((p) => (p.seat === actor.seat ? { ...p, memory: base } : p)) }, record, {
+          failed: true,
+        });
+      }
+      const memory = { ...base, [MEM.mirrorRole]: callId, [MEM.mirrorNight]: night };
+      const s = { ...state, players: state.players.map((p) => (p.seat === actor.seat ? { ...p, memory } : p)) };
+      return ok(s, record, { shownRole: t.roleId });
+    }
+
+    case 'steal': {
+      const e = needRole('robber');
+      if (e) return e;
+      if (night > 3) return 'notTonight';
+      if (action.target === action.seat) return 'notSelf';
+      const t = targetOf(action.target);
+      if (typeof t === 'string') return t;
+      const role = getRole(t.roleId);
+      const stealable = role.team === 'village' && role.seenAs.auraAbility && !t.infected && !t.turned && !t.abilitiesRemoved;
+      // A failed attempt is not spent.
+      if (!stealable) return ok(state, record, { failed: true });
+      let s = becomeRole(state, action.seat, { roleId: t.roleId, uses: roleMemory(t), fromNight: night + 1, shownNight: null });
+      s = becomeRole(s, t.seat, { roleId: 'villager', uses: 'fresh', fromNight: night + 1, shownNight: null });
+      return ok(s, record, { shownRole: t.roleId, linked: roleLinks(s, action.seat), tapped: t.seat });
+    }
+
+    case 'takeFace': {
+      const e = needRole('faceless_villager');
+      if (e) return e;
+      if (night > 3) return 'notTonight';
+      if (action.target === action.seat) return 'notSelf';
+      const t = targetOf(action.target);
+      if (typeof t === 'string') return t;
+      const role = getRole(t.roleId);
+      const change = (roleId: string) =>
+        becomeRole(state, action.seat, { roleId, uses: 'fresh', fromNight: night + 1, shownNight: null });
+      if (isWolfOrInfected(t)) {
+        // A wolf is copied as a plain Werewolf: no special power.
+        const s = change('werewolf');
+        return ok(s, record, { shownRole: t.roleId });
+      }
+      if (role.team === 'neutral') {
+        // The copy fails and is used up: a plain Villager.
+        return ok(change('villager'), record, { shownRole: t.roleId, failed: true });
+      }
+      const s = change(t.roleId);
+      return ok(s, record, { shownRole: t.roleId, linked: roleLinks(s, action.seat) });
+    }
+
+    case 'marry': {
+      const e = needRole('lady');
+      if (e) return e;
+      if (night > 3) return 'notTonight';
+      if (flag(actor as Player, MEM.used)) return 'used';
+      if (action.target === action.seat) return 'notSelf';
+      const t = targetOf(action.target);
+      if (typeof t === 'string') return t;
+      return ok(setMemory(state, action.seat, { [MEM.used]: true, [MEM.husband]: t.seat }), record);
+    }
+
+    case 'foolChoose': {
+      const e = needRole('fool');
+      if (e) return e;
+      if (night > 3) return 'notTonight';
+      if (!foolOffer(state, action.seat).includes(action.roleId)) return 'notOffered';
+      const s = becomeRole(state, action.seat, { roleId: action.roleId, uses: 'fresh', fromNight: night + 1, shownNight: null });
+      return ok(s, record, { shownRole: action.roleId, linked: roleLinks(s, action.seat) });
+    }
+
+    case 'puppet': {
+      const e = needRole('puppeteer');
+      if (e) return e;
+      if (flag(actor as Player, MEM.used)) return 'used';
+      const t = targetOf(action.target);
+      if (typeof t === 'string') return t;
+      const free = (p: Player) =>
+        p.alive && !p.abilitiesRemoved && roleActive(p, night) && !record.facts.devilBlocked.includes(p.seat) && !record.facts.jailed.includes(p.seat);
+      const failed = () => ok(state, record, { failed: true });
+      const spend = (s: GameState) => setMemory(s, action.seat, { [MEM.used]: true });
+      if (action.mode === 'sight') {
+        const seerActsTonight = roleCanActTonight(state, actor as Player, 'seer', night, record.facts.prayed);
+        const seer = state.players.find((p) => isSeer(p) && free(p));
+        if (!seer || !seerActsTonight) return failed();
+        return ok(spend(state), { ...record, puppet: { puppeteer: action.seat, mode: 'sight', target: t.seat } });
+      }
+      if (record.facts.prayed) return failed();
+      const witch = state.players.find((p) => p.roleId === 'witch' && free(p) && !flag(p, MEM.poisonUsed));
+      if (!witch) return failed();
+      // The Witch's poison is spent on his target; she cannot heal tonight.
+      const s = setMemory(spend(state), witch.seat, { [MEM.poisonUsed]: true });
+      return ok(s, {
+        ...record,
+        puppet: { puppeteer: action.seat, mode: 'poison', target: t.seat },
+        poisons: [...record.poisons, { by: witch.seat, target: t.seat }],
+      });
+    }
+
+    case 'revengeGuess': {
+      const e = needPower('avenger_wolf');
+      if (e) return e;
+      const p = actor as Player;
+      if (record.facts.prayed || num(p, MEM.revengeNight) !== night) return 'notTonight';
+      const mine = record.revengeGuesses.filter((g) => g.by === p.seat);
+      if (mine.length >= 2 || mine.some((g) => g.right)) return 'used';
+      const t = targetOf(action.target);
+      if (typeof t === 'string') return t;
+      const right = seatList(p, MEM.revengeOn).includes(t.seat);
+      const r = { ...record, revengeGuesses: [...record.revengeGuesses, { by: p.seat, target: t.seat, right }] };
+      return ok(state, right ? { ...r, revenge: { by: p.seat, target: t.seat } } : r, { answer: right ? 'thumbUp' : 'thumbDown' });
     }
   }
 }
@@ -553,11 +791,12 @@ export function witchSees(state: GameState, record: NightRecord): number | null 
   const t = state.players[record.pack.target];
   if (!t) return null;
   // Stopped or absorbed attacks show "nobody" (Prince, jail, Salvator, shield, Wise's first, Cursed, Cat's first).
-  if (t.roleId === 'prince' || record.facts.jailed === t.seat || record.protect === t.seat) return null;
+  if (t.roleId === 'prince' || record.facts.jailed.includes(t.seat) || record.protect.includes(t.seat)) return null;
   if ((num(t, MEM.shields) ?? 0) > 0) return null;
   if (t.roleId === 'wise' && !flag(t, 'lifeUsed')) return null;
   if (t.roleId === 'cursed' && !t.turned) return null;
   if (t.roleId === 'cat' && !flag(t, 'catAttacked')) return null;
-  if (record.guard && record.guard.target === t.seat) return record.guard.knight;
+  const guard = record.guard.find((g) => g.target === t.seat && g.knight !== t.seat);
+  if (guard) return guard.knight;
   return t.seat;
 }

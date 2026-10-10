@@ -5,7 +5,8 @@
  */
 import { isWolf, neighbours, type GameState, type Player, type WinResult } from '@/engine/state';
 import { eliminate, weakestWolf, type Death, type DeathCause, type Prompt } from './elimination';
-import { MEM, PACK } from './memory';
+import { MEM, PACK, holdsWolfPower, seatList } from './memory';
+import { patchMemory, patchPlayer, recheckLovers } from './roleChange';
 import type { NightRecord } from './nightActions';
 import { getRole } from './roles';
 import { checkWinner } from './win';
@@ -16,6 +17,8 @@ interface Attack {
   source: AttackSource;
   target: number;
   infect: boolean;
+  /** Who made the attack (for the Avenger Wolf: who poisoned). */
+  by: number | null;
 }
 
 export type Announcement =
@@ -36,30 +39,6 @@ export interface DawnResult {
 const flag = (p: Player, key: string) => p.memory[key] === true;
 const num = (p: Player, key: string) => (typeof p.memory[key] === 'number' ? (p.memory[key] as number) : null);
 
-function patchPlayer(state: GameState, seat: number, patch: Partial<Player>): GameState {
-  return { ...state, players: state.players.map((p) => (p.seat === seat ? { ...p, ...patch } : p)) };
-}
-function patchMemory(state: GameState, seat: number, patch: Player['memory']): GameState {
-  return {
-    ...state,
-    players: state.players.map((p) => (p.seat === seat ? { ...p, memory: { ...p.memory, ...patch } } : p)),
-  };
-}
-
-/** A Lover whose team changed is silently re-checked: different teams now → cross-team Lovers. */
-function recheckLovers(state: GameState, seat: number): GameState {
-  const p = state.players[seat];
-  if (!p || p.loverSeat === null) return state;
-  const partner = state.players[p.loverSeat];
-  if (!partner || p.team === 'lovers') return state;
-  if (p.team !== partner.team) {
-    let s = patchPlayer(state, p.seat, { team: 'lovers' });
-    s = patchPlayer(s, partner.seat, { team: 'lovers' });
-    return s;
-  }
-  return state;
-}
-
 export function resolveDawn(state: GameState, record: NightRecord): DawnResult {
   const night = record.night;
   const prayed = record.facts.prayed;
@@ -70,14 +49,13 @@ export function resolveDawn(state: GameState, record: NightRecord): DawnResult {
 
   // ── R1: gather the night attacks and apply the Troublemaker's swap ──
   const attacks: Attack[] = [];
-  if (record.pack && !prayed) attacks.push({ source: 'pack', target: record.pack.target, infect: record.pack.infect });
-  if (record.loneHunt && !prayed) attacks.push({ source: 'loneHunt', target: record.loneHunt.target, infect: false });
-  for (const pz of record.poisons) attacks.push({ source: 'poison', target: pz.target, infect: false });
-  for (const sw of record.swordStrikes) attacks.push({ source: 'sword', target: sw.target, infect: false });
-  if (record.heroStrike) attacks.push({ source: 'hero', target: record.heroStrike.target, infect: false });
-  if (record.thugStrike) attacks.push({ source: 'thug', target: record.thugStrike.target, infect: false });
-  if (record.swap) {
-    const [a, b] = record.swap;
+  if (record.pack && !prayed) attacks.push({ source: 'pack', target: record.pack.target, infect: record.pack.infect, by: null });
+  if (record.loneHunt && !prayed) attacks.push({ source: 'loneHunt', target: record.loneHunt.target, infect: false, by: record.loneHunt.wolf });
+  for (const pz of record.poisons) attacks.push({ source: 'poison', target: pz.target, infect: false, by: pz.by });
+  for (const sw of record.swordStrikes) attacks.push({ source: 'sword', target: sw.target, infect: false, by: sw.holder });
+  for (const h of record.heroStrike) attacks.push({ source: 'hero', target: h.target, infect: false, by: h.hero });
+  for (const t of record.thugStrike) attacks.push({ source: 'thug', target: t.target, infect: false, by: t.thug });
+  for (const [a, b] of record.swap) {
     for (const at of attacks) {
       if (at.target === a) at.target = b;
       else if (at.target === b) at.target = a;
@@ -86,12 +64,13 @@ export function resolveDawn(state: GameState, record: NightRecord): DawnResult {
 
   // An infection attempt spends the Alpha's use, whatever happens to it.
   if (record.pack?.infect && !prayed) {
-    const alpha = s.players.find((p) => p.alive && p.roleId === 'alpha_wolf');
-    if (alpha) s = patchMemory(s, alpha.seat, { infectionsUsed: (num(alpha, 'infectionsUsed') ?? 0) + 1 });
+    const by = record.pack.by ?? s.players.find((p) => p.alive && p.roleId === 'alpha_wolf')?.seat;
+    const infecter = by === undefined ? undefined : s.players[by];
+    if (infecter) s = patchMemory(s, infecter.seat, { infectionsUsed: (num(infecter, 'infectionsUsed') ?? 0) + 1 });
   }
 
   // ── R2: each attack through the attack order ──
-  const landed: { seat: number; source: AttackSource }[] = [];
+  const landed: { seat: number; source: AttackSource; by: number | null }[] = [];
   let trapB = false;
 
   const resolve = (at: Attack, seat: number, redirected: boolean): void => {
@@ -99,14 +78,15 @@ export function resolveDawn(state: GameState, record: NightRecord): DawnResult {
     if (!t || !t.alive) return;
     if (prayed) return;
     if (t.roleId === 'prince' && !t.abilitiesRemoved) return;
-    if (record.facts.jailed === seat) return;
-    if (record.protect === seat) return;
+    if (record.facts.jailed.includes(seat)) return;
+    if (record.protect.includes(seat)) return;
     if ((num(t, MEM.shields) ?? 0) > 0) {
       s = patchMemory(s, seat, { [MEM.shields]: (num(t, MEM.shields) ?? 0) - 1 });
       return;
     }
-    if (!redirected && record.guard && record.guard.target === seat && record.guard.knight !== seat) {
-      resolve(at, record.guard.knight, true);
+    const guard = redirected ? undefined : record.guard.find((g) => g.target === seat && g.knight !== seat);
+    if (guard) {
+      resolve(at, guard.knight, true);
       return;
     }
     const fromPack = at.source === 'pack';
@@ -146,22 +126,22 @@ export function resolveDawn(state: GameState, record: NightRecord): DawnResult {
       }
       return;
     }
-    landed.push({ seat, source: at.source });
+    landed.push({ seat, source: at.source, by: at.by });
   };
 
   for (const at of attacks) resolve(at, at.target, false);
 
   // ── R3: the Witch's heal cancels a landed pack kill on the player she healed ──
-  const healed = record.heal?.target ?? null;
-  const finalLanded = landed.filter((l) => !(l.source === 'pack' && l.seat === healed));
+  const healed = new Set(record.heal.map((h) => h.target));
+  const finalLanded = landed.filter((l) => !(l.source === 'pack' && healed.has(l.seat)));
   const packLandedOn = new Set(finalLanded.filter((l) => l.source === 'pack').map((l) => l.seat));
 
   // ── R4: unstoppable deaths ──
-  if (record.heroStrike) unstoppable.push({ seat: record.heroStrike.hero, cause: 'heroSelf' });
-  if (record.catScratch) {
-    unstoppable.push({ seat: record.catScratch.target, cause: 'catScratch' });
-    unstoppable.push({ seat: record.catScratch.cat, cause: 'catScratch' });
-    s = patchMemory(s, record.catScratch.cat, { [MEM.scratchPending]: false });
+  for (const h of record.heroStrike) unstoppable.push({ seat: h.hero, cause: 'heroSelf' });
+  for (const c of record.catScratch) {
+    unstoppable.push({ seat: c.target, cause: 'catScratch' });
+    unstoppable.push({ seat: c.cat, cause: 'catScratch' });
+    s = patchMemory(s, c.cat, { [MEM.scratchPending]: false });
   }
   for (const w of s.players.filter((x) => x.roleId === 'witcher' && !flag(x, MEM.trapFired) && !x.abilitiesRemoved)) {
     const trapped = num(w, MEM.trapSeat);
@@ -175,10 +155,11 @@ export function resolveDawn(state: GameState, record: NightRecord): DawnResult {
     const victim = weakestWolf(s, night);
     if (victim !== null) unstoppable.push({ seat: victim, cause: 'trap' });
   }
-  if (record.guest) {
-    const host = s.players[record.guest.host];
-    if (host && (isWolf(host, getRole) || host.roleId === 'lonely_wolf')) unstoppable.push({ seat: record.guest.guest, cause: 'guest' });
+  for (const g of record.guest) {
+    const host = s.players[g.host];
+    if (host && (isWolf(host, getRole) || host.roleId === 'lonely_wolf')) unstoppable.push({ seat: g.guest, cause: 'guest' });
   }
+  if (record.revenge) unstoppable.push({ seat: record.revenge.target, cause: 'revenge' });
   if (!prayed) {
     for (const p of s.players.filter((x) => x.alive && x.plagueNight !== null)) {
       if (night >= (p.plagueNight as number) + 3) unstoppable.push({ seat: p.seat, cause: 'plague' });
@@ -192,9 +173,25 @@ export function resolveDawn(state: GameState, record: NightRecord): DawnResult {
     if (t.roleId === 'wise' && !flag(t, 'wisePassiveLost')) s = { ...s, packState: { ...s.packState, [PACK.wolfPowersLost]: true } };
   }
   const guestDeaths: Death[] = [];
-  if (record.guest) {
-    if (packLandedOn.has(record.guest.guest)) guestDeaths.push({ seat: record.guest.host, cause: 'guest' });
-    if (packLandedOn.has(record.guest.host)) guestDeaths.push({ seat: record.guest.guest, cause: 'guest' });
+  for (const g of record.guest) {
+    if (packLandedOn.has(g.guest)) guestDeaths.push({ seat: g.host, cause: 'guest' });
+    if (packLandedOn.has(g.host)) guestDeaths.push({ seat: g.guest, cause: 'guest' });
+  }
+
+  // Avenger Wolf: a poison killed a wolf other than himself → guesses the next night.
+  for (const l of finalLanded.filter((x) => x.source === 'poison' && x.by !== null)) {
+    const victim = s.players[l.seat] as Player;
+    if (!isWolf(victim, getRole)) continue;
+    for (const av of s.players.filter((p) => p.alive && p.seat !== l.seat && holdsWolfPower(p, s, 'avenger_wolf'))) {
+      const on = [...new Set([...(num(av, MEM.revengeNight) === night + 1 ? seatList(av, MEM.revengeOn) : []), l.by as number])];
+      s = patchMemory(s, av.seat, { [MEM.revengeNight]: night + 1, [MEM.revengeOn]: on.join(',') });
+    }
+  }
+  // A Priest night skips the Avenger: his guesses wait a night.
+  if (prayed) {
+    for (const av of s.players.filter((p) => num(p, MEM.revengeNight) === night)) {
+      s = patchMemory(s, av.seat, { [MEM.revengeNight]: night + 1 });
+    }
   }
 
   // ── R6 + R8: all deaths together, with chains and effects ──

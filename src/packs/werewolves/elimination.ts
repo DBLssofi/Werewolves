@@ -4,7 +4,8 @@
  */
 import { createRng } from '@/engine/setup';
 import { isWolf, neighbours, type GameState, type Player } from '@/engine/state';
-import { MEM } from './memory';
+import { MEM, PACK, SHADOW_GAINABLE, seatList, shadowPowers } from './memory';
+import { becomeRole } from './roleChange';
 import { getRole } from './roles';
 
 export type DeathCause =
@@ -25,7 +26,8 @@ export type DeathCause =
   | 'execution'
   | 'coup'
   | 'ruleBreak'
-  | 'parrotWord';
+  | 'parrotWord'
+  | 'revenge';
 
 export interface Death {
   seat: number;
@@ -77,7 +79,8 @@ export function weakestWolf(state: GameState, salt: number): number | null {
  * 1. Bodyguard steps in for a Prince eliminated by execution, coup or Hunter shot (once).
  * 2. Chain deaths, repeated until nothing new: Lovers die together; the Lawyer dies when both clients are dead.
  * 3. Effects recorded for the next night: Thug unlocked, Apprentice Seer promoted, Musketeer becomes Prince,
- *    Wild Child turns, Dream Wolf wakes.
+ *    Wild Child turns, Dream Wolf wakes, the Lady and the Drunk take a role, the Shadow Wolf gains a power,
+ *    the Ghost starts whispering. An executed Wise takes every village-team ability.
  * 4. Prompts in seat order from the mayor's left: Hunter / Triple Face shot, Cat scratch, Sheep, mayor.
  * A rule-break elimination is clean: no abilities trigger (but a Lover's partner still dies).
  */
@@ -161,6 +164,16 @@ export function eliminate(state: GameState, initial: Death[]): EliminationResult
     }
   }
 
+  s = roleGains(s, deaths, night, dead);
+
+  // The Wise executed (not infected, passive intact): every village-team player loses their ability for good.
+  for (const d of deaths) {
+    const p = state.players[d.seat] as Player;
+    if (d.cause === 'execution' && p.roleId === 'wise' && !p.infected && !p.abilitiesRemoved && !flag(p, 'wisePassiveLost')) {
+      s = { ...s, players: s.players.map((x) => (x.alive && x.team === 'village' ? { ...x, abilitiesRemoved: true } : x)) };
+    }
+  }
+
   // Dream Wolf wakes once no other wolf is left to wake with the pack.
   for (const dream of s.players.filter((x) => x.alive && x.roleId === 'dream_wolf' && !flag(x, MEM.awake))) {
     const others = s.players.filter(
@@ -193,4 +206,61 @@ export function eliminate(state: GameState, initial: Death[]): EliminationResult
   }
 
   return { state: s, deaths, prompts };
+}
+
+/** Lady, Drunk, Shadow Wolf and Ghost: what they take from the deaths. Deaths come at dawn or by day, so "from the next night" is night + 1. */
+function roleGains(state: GameState, deaths: readonly Death[], night: number, dead: ReadonlySet<number>): GameState {
+  let s = state;
+  const before = (seat: number) => state.players[seat] as Player;
+  const fresh = (roleId: string) => ({ roleId, uses: 'fresh' as const, fromNight: night + 1, shownNight: night + 1 });
+
+  for (const d of deaths) {
+    const victim = before(d.seat);
+    // The Lady inherits her husband's role (only the role: never his bonds or his infection).
+    for (const lady of s.players.filter((x) => x.alive && x.roleId === 'lady' && !x.abilitiesRemoved)) {
+      if (num(lady, MEM.husband) === d.seat) s = becomeRole(s, lady.seat, fresh(victim.roleId));
+    }
+    // The Shadow Wolf gains a fallen wolf's card power, with the uses left.
+    const gainable = (SHADOW_GAINABLE as readonly string[]).includes(victim.roleId) && !victim.abilitiesRemoved;
+    if (gainable && s.packState[PACK.wolfPowersLost] !== true) {
+      for (const shadow of s.players.filter((x) => x.alive && x.roleId === 'shadow_wolf' && !x.abilitiesRemoved)) {
+        const powers = shadowPowers(shadow);
+        if (powers.includes(victim.roleId)) continue;
+        const uses: Player['memory'] = {};
+        if (victim.roleId === 'alpha_wolf') uses['infectionsUsed'] = num(victim, 'infectionsUsed') ?? 0;
+        if (victim.roleId === 'devil_wolf') uses[MEM.used] = flag(victim, MEM.used);
+        if (victim.roleId === 'mystic_wolf') uses[MEM.seerFound] = flag(victim, MEM.seerFound);
+        if (victim.roleId === 'avenger_wolf' && (num(victim, MEM.revengeNight) ?? 0) > night) {
+          uses[MEM.revengeNight] = num(victim, MEM.revengeNight);
+          uses[MEM.revengeOn] = seatList(victim, MEM.revengeOn).join(',');
+        }
+        s = {
+          ...s,
+          players: s.players.map((x) =>
+            x.seat === shadow.seat
+              ? { ...x, memory: { ...x.memory, ...uses, [MEM.shadowPowers]: [...powers, victim.roleId].join(','), [MEM.shadowShownNight]: night + 1 } }
+              : x,
+          ),
+        };
+      }
+    }
+    // The Ghost whispers from the first dawn after the elimination (not after a rule break).
+    if (victim.roleId === 'ghost' && d.cause !== 'ruleBreak' && !victim.abilitiesRemoved) {
+      s = { ...s, players: s.players.map((x) => (x.seat === d.seat ? { ...x, memory: { ...x.memory, [MEM.ghostFromNight]: night + 1 } } : x)) };
+    }
+  }
+
+  // The Drunk sobers up at the first elimination of a village-team player other than himself.
+  if (s.packState[PACK.drunkResolved] !== true) {
+    const drunk = s.players.find((x) => x.roleId === 'drunk');
+    const villagers = deaths.filter((d) => before(d.seat).team === 'village' && before(d.seat).roleId !== 'drunk');
+    if (drunk && villagers.length > 0) {
+      s = { ...s, packState: { ...s.packState, [PACK.drunkResolved]: true } };
+      const rng = createRng(state.seed * 7919 + night * 131 + 17);
+      const pick = before((villagers[Math.floor(rng() * villagers.length)] as Death).seat);
+      const plain = pick.roleId === 'villager' || pick.roleId === 'lycan';
+      if (drunk.alive && !dead.has(drunk.seat) && !drunk.abilitiesRemoved && !plain) s = becomeRole(s, drunk.seat, fresh(pick.roleId));
+    }
+  }
+  return s;
 }
