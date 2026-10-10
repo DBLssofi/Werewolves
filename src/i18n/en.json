@@ -1,0 +1,817 @@
+{
+ "app": {
+  "name": "Blood Moon",
+  "tagline": "Game Master Assistant",
+  "cardMark": "BLOOD MOON"
+ },
+ "common": {
+  "back": "Back",
+  "menu": "Seats and log",
+  "confirm": "Confirm",
+  "continue": "Continue",
+  "ok": "OK",
+  "yes": "Yes",
+  "no": "No",
+  "cancel": "Cancel",
+  "done": "Done",
+  "next": "Next",
+  "minus": "Fewer",
+  "plus": "More",
+  "nobody": "Nobody",
+  "seat": "Seat {{n}}",
+  "undo": "Undo"
+ },
+ "home": {
+  "start": "Start",
+  "resume": "Resume game",
+  "resumeHint": "Night {{night}} · {{alive}} players alive",
+  "resumeDay": "Day {{day}} · {{alive}} players alive",
+  "discard": "Discard saved game"
+ },
+ "players": {
+  "title": "Select number of players",
+  "hint": "{{wolves}} werewolves suggested"
+ },
+ "settings": {
+  "title": "Settings",
+  "timer": "Timer for the discussion",
+  "timerOff": "No timer",
+  "timerPerPerson": "Timer per player",
+  "timerWhole": "One timer for the whole discussion",
+  "timerSeconds": "Timer length (seconds)",
+  "voting": "Do you want the voting to be",
+  "votingOpen": "Identified (out loud)",
+  "votingAnonymous": "Anonymous",
+  "more": "More settings",
+  "less": "Fewer settings",
+  "reveal": "S1 · Cards of eliminated players",
+  "revealRevealed": "Shown",
+  "revealAnonymous": "Hidden",
+  "defence": "S4 · Defence speech at 3 votes",
+  "on": "On",
+  "off": "Off",
+  "day1Tie": "S5 · A tie on Day 1",
+  "day1NoExecution": "Nobody is executed",
+  "day1Revote": "Revote",
+  "devil": "S6 · Devil Wolf",
+  "devilNightly": "Blocks one player each night",
+  "devilPermanent": "Once: removes a power for good",
+  "alpha": "S7 · Alpha Wolf infections per game",
+  "shields": "S8 · Forger shields",
+  "swords": "S8 · Forger swords"
+ },
+ "mode": {
+  "title": "Choose the mode you want to play",
+  "classic": "Classic",
+  "classicHint": "The app picks the roles",
+  "custom": "Custom",
+  "customHint": "You pick the roles"
+ },
+ "custom": {
+  "title": "Choose the roles",
+  "count": "{{chosen}} of {{players}} cards",
+  "balance": "Balance {{score}}",
+  "suggested": "{{wolves}} werewolves suggested",
+  "problems": "Before you continue",
+  "groups": {
+   "core": "Core",
+   "info": "Information",
+   "protector": "Protectors",
+   "killer": "Killers and day powers",
+   "copier": "Copiers",
+   "bond": "Bonds and curses",
+   "animal": "Animals",
+   "neutral": "Neutrals",
+   "wolf": "Wolves"
+  },
+  "problem": {
+   "playerCount": "Between 8 and 50 players.",
+   "cardCount": "The number of cards must match the number of players.",
+   "unknownRole": "Unknown role.",
+   "tooManyCopies": "Too many copies of {{role}}.",
+   "tooFewCopies": "{{role}} needs at least {{min}} copies.",
+   "missingPartner": "{{role}} needs {{partner}} in the game."
+  }
+ },
+ "deal": {
+  "pass": "Give the phone to the player on your left",
+  "passNext": "Give the phone to the next player on the left",
+  "seatOf": "Player {{n}} of {{total}}",
+  "pick": "Tap any card to reveal your role",
+  "name": "Enter your name",
+  "namePlaceholder": "Your name",
+  "hold": "Hold to see your role",
+  "confirm": "I have seen my role",
+  "done": "Give the phone back to the narrator",
+  "error": {
+   "emptyName": "Please enter a name.",
+   "nameInUse": "Someone already has this name.",
+   "cardTaken": "That card is taken."
+  }
+ },
+ "review": {
+  "title": "All roles memorised?",
+  "hint": "Only the narrator should see this screen.",
+  "yes": "Yes, continue",
+  "no": "No, show one player",
+  "pick": "Who wants to see their role again?",
+  "handOver": "Give the phone to {{name}}",
+  "back": "Back to the narrator"
+ },
+ "mayor": {
+  "title": "Elect the mayor",
+  "hint": "Volunteers give a short speech, then everyone votes. Tap the winner.",
+  "random": "Pick one at random",
+  "succession": "The mayor has fallen",
+  "name": "{{name}} names the new mayor",
+  "election": "Hold an election and tap the new mayor"
+ },
+ "instructions": {
+  "title": "Before night falls",
+  "read": "Read this to the players:",
+  "line1": "Close your eyes. During the night, only open them when I call your role.",
+  "line2": "Tonight’s settings: {{settings}}.",
+  "nightFalls": "Night falls"
+ },
+ "night": {
+  "title": "Night {{n}}",
+  "resolve": "Wake the village",
+  "acting": "Wake",
+  "crossed": "Woken, shown crossed arms",
+  "aloud": "Say it aloud — nobody wakes",
+  "nobodyActs": "Nobody acts tonight",
+  "skip": "Nobody / shakes head",
+  "pickOne": "Tap a player",
+  "pickTwo": "Tap two players",
+  "pickRole": "Choose a role",
+  "asRole": "{{role}} (as {{copied}})",
+  "taps": "Tap these players first",
+  "tapRole": "{{name}}: show the {{role}} card",
+  "tapShadow": "{{name}}: show the {{powers}} card",
+  "witchSees": "Point to: {{name}}",
+  "witchSeesNobody": "Show crossed arms (nobody)",
+  "word": "Show tomorrow’s word: {{word}}",
+  "linked": "Point out: {{names}}",
+  "secretSign": "Agree a secret sign with the Judge.",
+  "packMeets": "Night 1: the wolves see each other.",
+  "dreamWolf": "Point out the Dream Wolf: {{name}}",
+  "result": "Result",
+  "answer": {
+   "thumbUp": "Thumb up",
+   "thumbDown": "Thumb down"
+  },
+  "failed": "Nothing happens: show crossed arms",
+  "shown": "Show the card: {{role}}",
+  "tapped": "Then tap {{name}}: flat hand on the chest (now a plain Villager)",
+  "group": "Checked group: {{names}}",
+  "meaning": {
+   "seerCheck": {
+    "thumbUp": "Thumb up: not a wolf",
+    "thumbDown": "Thumb down: a wolf"
+   },
+   "auraCheck": {
+    "thumbUp": "Thumb up: has an ability",
+    "thumbDown": "Thumb down: no ability"
+   },
+   "piCheck": {
+    "thumbUp": "Thumb up: no wolf among the three",
+    "thumbDown": "Thumb down: at least one wolf among the three"
+   },
+   "mysticCheck": {
+    "thumbUp": "Thumb up: this is the Seer",
+    "thumbDown": "Thumb down: not the Seer"
+   },
+   "owlCheck": {
+    "thumbUp": "Thumb up: opened their eyes tonight",
+    "thumbDown": "Thumb down: slept all night"
+   },
+   "examine": {
+    "thumbUp": "Thumb up: had the plague, now cured",
+    "thumbDown": "Thumb down: no plague"
+   },
+   "revengeGuess": {
+    "thumbUp": "Thumb up: right, the poisoner dies at dawn",
+    "thumbDown": "Thumb down: wrong"
+   }
+  }
+ },
+ "forms": {
+  "pray": "Prays",
+  "devilBlock": "Block",
+  "jail": "Jail",
+  "mirror": "Copy a player",
+  "steal": "Rob",
+  "takeFace": "Take a face",
+  "marry": "Choose a husband",
+  "foolChoose": "Choose a role",
+  "bind": "Bind two Lovers",
+  "chooseFather": "Choose a role model",
+  "chooseClients": "Choose two clients",
+  "chooseTargets": "Choose two targets",
+  "setTrap": "Set the trap",
+  "protect": "Protect",
+  "guard": "Guard",
+  "forgeShield": "Give a shield",
+  "forgeSword": "Give a sword",
+  "packVictim": "Kill",
+  "packInfect": "Infect (Alpha)",
+  "littleGirlCaught": "Little Girl caught peeking",
+  "paralyse": "Paralyse",
+  "mysticCheck": "Search for the Seer",
+  "revengeGuess": "Guess the poisoner",
+  "loneHunt": "Lone hunt",
+  "puppetSight": "Choose the Seer’s check",
+  "puppetPoison": "Choose the Witch’s poison",
+  "heal": "Heal",
+  "poison": "Poison",
+  "seerCheck": "Check",
+  "guestVisit": "Visit",
+  "auraCheck": "Check for an ability",
+  "piCheck": "Check a group of three",
+  "catScratch": "Scratch",
+  "heroStrike": "Strike",
+  "thugStrike": "Take revenge",
+  "swordStrike": "Strike with the sword",
+  "recruit": "Recruit",
+  "plague": "Spread the plague",
+  "examine": "Examine",
+  "swap": "Swap two players",
+  "owlCheck": "Ask about a player"
+ },
+ "calls": {
+  "pack": "Werewolves",
+  "swordHolder": "Sword holder",
+  "swordHolderScript": "Sword holder, wake up… Do you strike? Point, or shake your head… go back to sleep.",
+  "packScript": "Werewolves, wake up… Choose your victim… Werewolves, go back to sleep.",
+  "alpha": "Alpha, do you kill or infect?"
+ },
+ "dawn": {
+  "title": "Dawn",
+  "tapWolf": "Before waking the village: tap {{names}} and show the wolf sign.",
+  "ghost": "Ghost {{name}}: one letter",
+  "ghostPlaceholder": "Letter",
+  "ghostSay": "The ghost whispers: {{letter}}",
+  "read": "Read aloud:",
+  "quiet": "The night was quiet.",
+  "nobodyDied": "Nobody died tonight.",
+  "died": "{{name}} was eliminated.",
+  "diedRole": "{{name}} was eliminated. They were the {{role}}.",
+  "plague": "{{name}} died of the plague.",
+  "catAttacked": "The cat was attacked and survived.",
+  "paralysed": "{{name}} is paralysed today.",
+  "bearGrowls": "The bear growls.",
+  "bearQuiet": "The bear is quiet.",
+  "startDay": "Start the day",
+  "prompt": {
+   "hunterShot": "{{name}} must shoot: tap the target",
+   "catScratchNow": "{{name}} (Cat) takes a wolf with her: tap the wolf",
+   "sheepNames": "{{name}} (Sheep) names the next Sheep",
+   "mayorName": "{{name}} names the new mayor",
+   "mayorElection": "Hold a mayor election and tap the winner"
+  }
+ },
+ "day": {
+  "title": "Day {{n}}",
+  "speaking": "The mayor chooses who speaks first and the direction. The mayor speaks last.",
+  "noMayor": "No mayor: you lead the discussion.",
+  "powers": "Day powers",
+  "raven": "Raven: mark a player (+2 votes)",
+  "judge": "Judge: no vote today",
+  "dictator": "Dictator: coup",
+  "parrot": "Parrot Wolf said the word?",
+  "parrotSaid": "Said it",
+  "parrotNot": "Did not say it",
+  "ruleBreak": "Rule break",
+  "vote": "Vote",
+  "voteTitle": "Who does each player vote for?",
+  "revoteTitle": "Revote between the tied players",
+  "votesFor": "votes for",
+  "penalty": "Penalty votes",
+  "totals": "Votes",
+  "submit": "Count the votes",
+  "defence": "{{name}} has 3 votes: defence speech?",
+  "noVoteToday": "No vote today.",
+  "tie": "Tie: revote between {{names}}.",
+  "noExecution": "Nobody is executed.",
+  "executed": "{{name}} is executed.",
+  "sheep": "Tie: the Sheep {{name}} is sacrificed.",
+  "nightFalls": "Night falls",
+  "offence": {
+   "role": "Showed or said their role",
+   "oath": "Swore an oath",
+   "peek": "Peeked at night"
+  }
+ },
+ "over": {
+  "title": "The game is over",
+  "team": {
+   "village": "The village wins",
+   "werewolf": "The werewolves win",
+   "lovers": "The Lovers win"
+  },
+  "solo": "{{name}} ({{role}}) wins alone",
+  "draw": "Nobody wins",
+  "roles": "Everyone’s role",
+  "log": "Game log",
+  "newGame": "New game"
+ },
+ "seats": {
+  "title": "Seats",
+  "log": "Log",
+  "alive": "Alive",
+  "dead": "Eliminated",
+  "mayor": "Mayor",
+  "paralysed": "Paralysed",
+  "lover": "Lover",
+  "infected": "Infected",
+  "sheep": "Sheep",
+  "cult": "In the cult",
+  "plague": "Plague"
+ },
+ "log": {
+  "nightStart": "Night falls",
+  "dayStart": "Day breaks",
+  "mayor": "Mayor: {{name}}",
+  "mayorNone": "No mayor",
+  "action": "{{who}} → {{what}}",
+  "dawn": "Dawn: {{deaths}}",
+  "vote": "Vote: {{result}}",
+  "execution": "Executed: {{deaths}}",
+  "hunterShot": "{{name}} shot {{target}}",
+  "catScratch": "{{name}} scratched {{target}}",
+  "sheepNamed": "{{from}} named {{to}} the next Sheep",
+  "ravenMark": "Raven marked {{target}}",
+  "judge": "Judge cancelled the vote",
+  "coup": "Coup on {{target}}",
+  "parrotRemoved": "Parrot Wolf did not say the word",
+  "ruleBreak": "{{name}} broke a rule",
+  "ghostLetter": "Ghost: {{letter}}",
+  "gameOver": "Game over",
+  "none": "nobody",
+  "cause": {
+   "pack": "killed by the wolves",
+   "loneHunt": "lone hunt",
+   "poison": "poisoned",
+   "sword": "sword",
+   "hero": "Hero",
+   "heroSelf": "Hero (himself)",
+   "thug": "Thug",
+   "catScratch": "Cat",
+   "trap": "Witcher’s trap",
+   "guest": "Guest",
+   "plague": "plague",
+   "lover": "died of love",
+   "lawyer": "Lawyer",
+   "hunter": "Hunter’s shot",
+   "execution": "executed",
+   "coup": "coup",
+   "ruleBreak": "rule break",
+   "parrotWord": "Parrot word",
+   "revenge": "Avenger Wolf"
+  }
+ },
+ "errors": {
+  "noSuchPlayer": "There is no such player.",
+  "targetDead": "That player is eliminated.",
+  "dead": "That player is eliminated.",
+  "notSelf": "Not themselves.",
+  "sameAsLastNight": "Not the same player as last night.",
+  "wrongRole": "That player can’t do this.",
+  "actorDead": "That player is eliminated.",
+  "used": "Already used.",
+  "notTonight": "Not tonight.",
+  "notAWolf": "That player is not a wolf.",
+  "targetIsWolf": "Not a wolf.",
+  "alreadyAttacked": "The wolves already chose.",
+  "onePotionPerNight": "Only one potion per night.",
+  "noItemLeft": "No items left.",
+  "alreadyALover": "Already a Lover: choose again.",
+  "notShownToWitch": "The Witch can only heal the player shown to her.",
+  "samePlayer": "Choose two different players.",
+  "alreadyInCult": "Already in the cult.",
+  "alreadyPlagued": "Already has the plague.",
+  "blocked": "Blocked tonight: show crossed arms.",
+  "powersLost": "The wolves lost their powers.",
+  "notOffered": "Not one of the offered roles.",
+  "controlled": "The Puppeteer chose this check.",
+  "paralysed": "Paralysed today.",
+  "noVoteToday": "There is no vote today.",
+  "mustVoteOnce": "Every player must vote exactly once.",
+  "notAVoter": "That player can’t vote.",
+  "notAmongTied": "Only the tied players can be voted for.",
+  "notTheSheep": "Not the Sheep.",
+  "gameOver": "The game is over.",
+  "wrongPhase": "Not now.",
+  "promptsPending": "Answer the questions first.",
+  "noSuchPrompt": "Nothing to answer.",
+  "revotePending": "A revote is due first.",
+  "alreadyVoted": "The vote is done for today.",
+  "notAGhost": "Not a ghost.",
+  "badLetter": "One letter only."
+ },
+ "parrotWords": [
+  "umbrella",
+  "pancake",
+  "lighthouse",
+  "grandmother",
+  "toothbrush",
+  "avalanche",
+  "pineapple",
+  "saxophone",
+  "wheelbarrow",
+  "marmalade",
+  "helicopter",
+  "spaghetti",
+  "hedgehog",
+  "volcano",
+  "accordion",
+  "submarine",
+  "cauliflower",
+  "trampoline",
+  "porcupine",
+  "thermometer",
+  "rhinoceros",
+  "kangaroo",
+  "spatula",
+  "gondola",
+  "walrus",
+  "compass",
+  "dumpling",
+  "cactus",
+  "tambourine",
+  "oyster"
+ ],
+ "roles": {
+  "villager": {
+   "name": "Villager",
+   "quote": "Let's burn them.",
+   "text": "You have no special ability. Listen, debate, and vote out the werewolves."
+  },
+  "werewolf": {
+   "name": "Werewolf",
+   "quote": "Blood.",
+   "text": "Each night, wake with the other wolves and choose one player to kill.",
+   "script": "Werewolves, wake up and look at each other… Choose your victim… Werewolves, go back to sleep."
+  },
+  "alpha_wolf": {
+   "name": "Alpha Wolf",
+   "quote": "I am the alpha.",
+   "text": "You hunt with the wolves. Once per game (unless the narrator says otherwise), you may infect the victim instead of killing them: they secretly become a werewolf.",
+   "script": "…Alpha, do you kill or infect? (thumb up = kill, fist = infect)…"
+  },
+  "dark_wolf": {
+   "name": "Dark Wolf",
+   "quote": "Hush.",
+   "text": "You hunt with the wolves. Then you wake again alone and choose a player to paralyse: tomorrow they can't speak or vote.",
+   "script": "Dark Wolf, wake up… Choose a player to silence tomorrow… Dark Wolf, go back to sleep."
+  },
+  "seer": {
+   "name": "Seer",
+   "quote": "Every mask slips at night.",
+   "text": "Each night, point to a player. The narrator shows you if they are a wolf or not.",
+   "script": "Seer, wake up… Point to a player… [thumb]… Seer, go back to sleep."
+  },
+  "witch": {
+   "name": "Witch",
+   "quote": "Not all witches are evil.",
+   "text": "You have 1 healing potion and 1 poison potion for the whole game. Each night the narrator shows you who is about to die. You may heal them, poison someone, or do nothing, but only one potion per night.",
+   "script": "Witch, wake up… This player is about to die [point / crossed arms]… Do you heal them?… Do you poison someone?… Witch, go back to sleep."
+  },
+  "salvator": {
+   "name": "Salvator",
+   "quote": "The darkness shall not pass.",
+   "text": "Each night, choose a player to protect from all harm tonight. You may protect yourself. You can't protect the same player two nights in a row.",
+   "script": "Salvator, wake up… Who do you protect tonight?… Salvator, go back to sleep."
+  },
+  "hunter": {
+   "name": "Hunter",
+   "quote": "I'll die with honour — an eye for an eye.",
+   "text": "When you are eliminated, you must immediately shoot another player. They are eliminated too.",
+   "script": "The Hunter has fallen. Hunter, point to the player you take with you."
+  },
+  "apprentice_seer": {
+   "name": "Apprentice Seer",
+   "quote": "Oh oh, he is a werewolf!",
+   "text": "You sleep while the Seer lives. When the Seer is eliminated, you become the new Seer."
+  },
+  "beholder": {
+   "name": "Beholder",
+   "quote": "My third eye will know.",
+   "text": "On the first night, the narrator shows you who the Seer is.",
+   "script": "Beholder, wake up… This is the Seer [point]… Beholder, go back to sleep."
+  },
+  "aura_seer": {
+   "name": "Aura Seer",
+   "quote": "Everyone shines. Some shine brighter.",
+   "text": "Each night, point to a player. The narrator shows you if they have a special ability.",
+   "script": "Aura Seer, wake up… Point to a player… [thumb]… Aura Seer, go back to sleep."
+  },
+  "pi": {
+   "name": "P.I.",
+   "quote": "There must be a pattern.",
+   "text": "Every other night, point to a player. The narrator shows you if there is a wolf among that player and their two neighbours.",
+   "script": "P.I., wake up… Point to a player… [thumb]… P.I., go back to sleep."
+  },
+  "lycan": {
+   "name": "Lycan",
+   "quote": "I wish I hadn't taken that potion.",
+   "text": "You are a villager, but anyone checking for wolves sees you as one."
+  },
+  "mason": {
+   "name": "Mason",
+   "quote": "I trust only my partner, or should I?",
+   "text": "On the first night, you wake up and see the other Masons.",
+   "script": "Masons, wake up and look at each other… Masons, go back to sleep."
+  },
+  "little_girl": {
+   "name": "Little Girl",
+   "quote": "I want to play outside.",
+   "text": "While the wolves are awake, you may secretly peek. If a wolf catches you, they attack you instead of their victim."
+  },
+  "bear": {
+   "name": "Bear",
+   "quote": "Danger.",
+   "text": "Each morning, the narrator tells the village if the bear growls: a wolf is sitting next to you."
+  },
+  "owl": {
+   "name": "Owl",
+   "quote": "I saw everything.",
+   "text": "Each night, point to a player. The narrator shows you if they were woken up tonight.",
+   "script": "Owl, wake up… Point to a player… [thumb]… Owl, go back to sleep."
+  },
+  "prince": {
+   "name": "Prince",
+   "quote": "You can't touch me.",
+   "text": "Nothing can kill you at night. Only the village vote can remove you."
+  },
+  "musketeer": {
+   "name": "Musketeer",
+   "quote": "My blade belongs to the crown.",
+   "text": "On the first night, you learn who the Prince is. If the Prince is eliminated, you become the new Prince.",
+   "script": "Musketeer, wake up… This is your Prince [point]… Musketeer, go back to sleep."
+  },
+  "bodyguard": {
+   "name": "Bodyguard",
+   "quote": "His life before mine.",
+   "text": "On the first night, you learn who the Prince is. If the Prince would be eliminated, you are eliminated instead.",
+   "script": "Bodyguard, wake up… This is the one you protect [point]… Bodyguard, go back to sleep."
+  },
+  "knight": {
+   "name": "Knight",
+   "quote": "I will die for you.",
+   "text": "Each night, choose a player to guard. If they are attacked tonight, the attack hits you instead.",
+   "script": "Knight, wake up… Who do you guard tonight?… Knight, go back to sleep."
+  },
+  "forger": {
+   "name": "Forger",
+   "quote": "A shield or a weapon? What do you need?",
+   "text": "At night, you may forge a shield or a sword and give it to another player. You have the number of each set by the narrator (normally 1 of each).",
+   "script": "Forger, wake up… Shield [flat palm], sword [fist], or nothing?… Point to who receives it… Forger, go back to sleep."
+  },
+  "priest": {
+   "name": "Priest",
+   "quote": "Heaven, grant us one quiet night.",
+   "text": "Once per game, at the start of a night, you may pray. That night nobody can be killed.",
+   "script": "Priest, wake up… Do you pray tonight? (nod / shake)… Priest, go back to sleep."
+  },
+  "warden": {
+   "name": "Warden",
+   "quote": "I will keep an eye on you.",
+   "text": "Each night, lock a player in jail. Tonight they cannot use their ability, but nothing can hurt them.",
+   "script": "Warden, wake up… Who do you lock up tonight?… Warden, go back to sleep."
+  },
+  "wise": {
+   "name": "The Wise",
+   "quote": "I can't die now. They need me.",
+   "text": "You survive the first wolf attack. If the wolves kill you later, they lose their special powers. If the village executes you, every villager loses their ability."
+  },
+  "diseased": {
+   "name": "Diseased",
+   "quote": "Illness isn't a bad thing after all.",
+   "text": "If the wolves kill or infect you, they are too sick to hunt the next night."
+  },
+  "hero": {
+   "name": "Hero",
+   "quote": "I will take you down with me.",
+   "text": "Once per game, at night, point to a player. You attack them, and you die tonight no matter what.",
+   "script": "Hero, wake up… Do you take someone with you tonight? Point, or shake your head… Hero, go back to sleep."
+  },
+  "thug": {
+   "name": "Thug",
+   "quote": "A soul for a soul.",
+   "text": "When one of your neighbours is eliminated, you get one kill. Use it on any night after that.",
+   "script": "Thug, wake up… [thumb up / crossed arms]… Point to your target, or shake your head… Thug, go back to sleep."
+  },
+  "witcher": {
+   "name": "Witcher",
+   "quote": "I will hunt you.",
+   "text": "Once, in the first 3 nights, set a trap on a player. If they are a wolf, or wolves attack them, a wolf dies.",
+   "script": "Witcher, wake up… Do you set your trap? Point, or shake your head… Witcher, go back to sleep."
+  },
+  "dictator": {
+   "name": "Dictator",
+   "quote": "Nobody knows how to make things better, but I can!",
+   "text": "Once per game, before the vote, seize power and shoot one player. If they are a wolf, you become mayor. If not, you both die.",
+   "script": "The Dictator has seized power… [is / is not a wolf]… Night falls."
+  },
+  "guest": {
+   "name": "Guest",
+   "quote": "Can I stay for the night?",
+   "text": "At night, visit a player. If the wolves attack you or your host, you both die. If your host is a wolf, you die.",
+   "script": "Guest, wake up… Who do you visit tonight?… Guest, go back to sleep."
+  },
+  "lawyer": {
+   "name": "Lawyer",
+   "quote": "They must be innocent.",
+   "text": "On the first night, choose 2 clients. Keep them alive. If both of them die, you die too, and you lose.",
+   "script": "Lawyer, wake up… Point to your two clients… Lawyer, go back to sleep."
+  },
+  "judge": {
+   "name": "Judge",
+   "quote": "Let there be justice.",
+   "text": "Once per game, before the vote, give your secret sign. There is no vote today and night falls.",
+   "script": "Judge, wake up… Show me your secret sign… Judge, go back to sleep."
+  },
+  "doppelganger": {
+   "name": "Doppelganger",
+   "quote": "I am you.",
+   "text": "Every other night, point to a player. Tonight only, you use their ability.",
+   "script": "Doppelganger, wake up… Point to the player you become tonight… [show card]… go back to sleep.\" Call him again in that role's turn."
+  },
+  "faceless_villager": {
+   "name": "Faceless Villager",
+   "quote": "Who am I?",
+   "text": "Once, in the first 3 nights, point to a player. You become their role. If they are a wolf, you become a wolf.",
+   "script": "Faceless Villager, wake up… Do you take someone's face? Point, or shake your head… [show card]… go back to sleep."
+  },
+  "robber": {
+   "name": "Robber",
+   "quote": "Sorry, but I need it to survive.",
+   "text": "Once, in the first 3 nights, steal a villager's role. They become a plain Villager.",
+   "script": "Robber, wake up… Do you rob someone? Point, or shake your head… [show card / crossed arms]… go back to sleep."
+  },
+  "lady": {
+   "name": "The Lady",
+   "quote": "Family is important.",
+   "text": "Once, in the first 3 nights, choose a husband. When he is eliminated, you take his role.",
+   "script": "Lady, wake up… Do you choose your husband? Point, or shake your head… Lady, go back to sleep."
+  },
+  "fool": {
+   "name": "The Fool",
+   "quote": "Haha, I want to be this.",
+   "text": "The narrator shows you 3 roles that aren't in the game. By the end of Night 3, pick one and become it.",
+   "script": "Fool, wake up… These are your choices [show 3]… Point to one, or shake your head… Fool, go back to sleep."
+  },
+  "drunk": {
+   "name": "Drunk",
+   "quote": "Oh! Right.",
+   "text": "You start as a plain Villager. When the first villager falls, you sober up and take their role."
+  },
+  "triple_face": {
+   "name": "Triple Face",
+   "quote": "I am a magical being.",
+   "text": "Night 1 you are the Seer. Night 2 you are the Witch, with one heal and one poison for that night. From Night 3 on, you are the Hunter.",
+   "script": "Triple Face, wake up… [Night 1: point to a player… thumb] [Night 2: this player is about to die… heal? poison?]… Triple Face, go back to sleep."
+  },
+  "cupid": {
+   "name": "Cupid",
+   "quote": "Fall in love, fall together.",
+   "text": "Once, in the first 3 nights, choose 2 players to fall in love. You may choose yourself. If one Lover dies, the other dies too.",
+   "script": "Cupid, wake up… Point to the two players who fall in love… Cupid, go back to sleep… [tap both] Lovers, open your eyes and see each other… Lovers, go back to sleep."
+  },
+  "cursed": {
+   "name": "Cursed",
+   "quote": "Don't kill me, I am cursed.",
+   "text": "You are a villager. If the wolves attack you, you don't die: you become a wolf."
+  },
+  "wild_child": {
+   "name": "Wild Child",
+   "quote": "I don't know what would happen if I lose my father.",
+   "text": "On the first night, choose a father. If he is eliminated, you become a wolf.",
+   "script": "Wild Child, wake up… Point to your father… Wild Child, go back to sleep."
+  },
+  "ghost": {
+   "name": "Ghost",
+   "quote": "Wait, I am still here?",
+   "text": "When you are eliminated, you stay as a ghost. Each morning, give the narrator one letter as a clue.",
+   "script": "Ghost, wake up… Show me your letter… Ghost, go back to sleep."
+  },
+  "troublemaker": {
+   "name": "Troublemaker",
+   "quote": "Let there be chaos.",
+   "text": "Each night, you wake last and choose 2 players. Any attack aimed at one of them tonight hits the other instead.",
+   "script": "Troublemaker, wake up… Point to two players, or shake your head… Troublemaker, go back to sleep."
+  },
+  "puppeteer": {
+   "name": "Puppeteer",
+   "quote": "Those who have power never use it well.",
+   "text": "Once per game, take control: choose who the Seer checks, or who the Witch poisons, tonight.",
+   "script": "Puppeteer, wake up… Thumb for sight, fist for poison, or shake your head… Point to the target… Puppeteer, go back to sleep."
+  },
+  "raven": {
+   "name": "Raven",
+   "quote": "I don't like you.",
+   "text": "Each day, just before the vote, everyone naps and you choose a player. They start the vote with 2 votes against them.",
+   "script": "Village, close your eyes… Raven, wake up and point… Raven, go back to sleep… Village, wake up."
+  },
+  "cat": {
+   "name": "Cat",
+   "quote": "You think you can kill me and escape?",
+   "text": "If the wolves attack you, you survive. The next night you see who the wolves are, choose one, and take them down with you.",
+   "script": "Dawn: \"The cat was attacked last night.\" Night: \"Cat, wake up… These are the wolves [point]… Choose one… Cat, go back to sleep."
+  },
+  "sheep": {
+   "name": "Sheep",
+   "quote": "You sacrifice me? You get cursed.",
+   "text": "If a vote is tied, you are executed instead, and you name the next Sheep.",
+   "script": "The vote is tied. The Sheep is sacrificed. Sheep, point to the next Sheep."
+  },
+  "hoodlum": {
+   "name": "Hoodlum",
+   "quote": "Why? you ask.",
+   "text": "On the first night, choose 2 players. If both are eliminated before the game ends and you are still alive, you win.",
+   "script": "Hoodlum, wake up… Point to your two targets… Hoodlum, go back to sleep."
+  },
+  "angel": {
+   "name": "Angel",
+   "quote": "Let me go and live in peace.",
+   "text": "If the village votes you out on the first voting day, you win alone and everyone else loses. If not, you become a plain villager."
+  },
+  "sect_leader": {
+   "name": "Sect Leader",
+   "quote": "Join my cult.",
+   "text": "Each night, secretly recruit a player into your cult. When every other living player belongs to the cult, you sacrifice them all and win alone.",
+   "script": "Sect Leader, wake up… Who joins your cult tonight?… Sect Leader, go back to sleep."
+  },
+  "dark_cupid": {
+   "name": "Dark Cupid",
+   "quote": "Spread love and kill it.",
+   "text": "Once, in the first 3 nights, make 2 players fall in love. You win if both Lovers are dead before the game ends.",
+   "script": "Dark Cupid, wake up… Point to the two players who fall in love… Dark Cupid, go back to sleep… [tap both] Lovers, open your eyes…"
+  },
+  "rat": {
+   "name": "Rat",
+   "quote": "Let there be the plague.",
+   "text": "Each night, infect a player with the plague. Three days later they die. If every other living player carries the plague, you win alone.",
+   "script": "Rat, wake up… Who do you infect tonight?… Rat, go back to sleep."
+  },
+  "doctor": {
+   "name": "Doctor",
+   "quote": "Let me have a look at you.",
+   "text": "Each night, examine a player. If they carry the plague, you cure them.",
+   "script": "Doctor, wake up… Who do you examine tonight?… [thumb]… Doctor, go back to sleep."
+  },
+  "lonely_wolf": {
+   "name": "Lonely Wolf",
+   "quote": "I will kill them all.",
+   "text": "You hunt with the wolves, but they don't know you're alone. Every other night, you also kill anyone you like. Be the last one alive.",
+   "script": "Odd nights: \"Lonely Wolf, wake up… Choose your prey… Lonely Wolf, go back to sleep."
+  },
+  "minion": {
+   "name": "Minion",
+   "quote": "Let me help you, my lords.",
+   "text": "You are human, but you serve the wolves. On the first night you learn who they are. They don't know who you are.",
+   "script": "Wolves, keep your eyes closed and raise your thumb… Minion, wake up and see your masters… Minion, go back to sleep. Wolves, lower your thumbs."
+  },
+  "devil_wolf": {
+   "name": "Devil Wolf",
+   "quote": "Stop.",
+   "text": "You hunt with the wolves. You also take away a player's power: for one night, or for good, depending on the game's settings.",
+   "script": "Devil Wolf, wake up… Whose power do you take?… Devil Wolf, go back to sleep."
+  },
+  "dream_wolf": {
+   "name": "Dream Wolf",
+   "quote": "Let me sleep.",
+   "text": "You are a wolf, but you sleep through the hunts. The other wolves know who you are. When all of them are gone, you wake up and hunt."
+  },
+  "sneaky_wolf": {
+   "name": "Sneaky Wolf",
+   "quote": "Seer, you can't see me.",
+   "text": "You hunt with the wolves. When the Seer looks at you, she sees an innocent."
+  },
+  "mystic_wolf": {
+   "name": "Mystic Wolf",
+   "quote": "I will find you, Seer.",
+   "text": "You hunt with the wolves. Then you wake alone and point to a player: the narrator tells you if they are the Seer.",
+   "script": "Mystic Wolf, wake up… Point to a player… [thumb]… Mystic Wolf, go back to sleep."
+  },
+  "parrot_wolf": {
+   "name": "Parrot Wolf",
+   "quote": "Say it again… say it again.",
+   "text": "You hunt with the wolves. Each night you get a secret word. Say it out loud the next day, or you are eliminated.",
+   "script": "Parrot Wolf, wake up… This is your word [show]… Parrot Wolf, go back to sleep."
+  },
+  "shadow_wolf": {
+   "name": "Shadow Wolf",
+   "quote": "Where they fall, I rise.",
+   "text": "You hunt with the wolves. Each time another wolf with a special power is eliminated, you gain that power.",
+   "script": "Shadow Wolf, wake up… Use your gained power… Shadow Wolf, go back to sleep."
+  },
+  "avenger_wolf": {
+   "name": "Avenger Wolf",
+   "quote": "I will kill you, witch.",
+   "text": "You hunt with the wolves. If the Witch's poison kills a wolf, the next night you get 2 guesses to find her. Guess right and she dies.",
+   "script": "Avenger Wolf, wake up… Your pack was poisoned. Point to the one you blame… [thumb]… Once more?… [thumb]… Avenger Wolf, go back to sleep."
+  }
+ }
+}

@@ -86,6 +86,8 @@ export interface Session {
   state: GameState;
   /** Tonight's actions, from nightfall until dawn is resolved; null otherwise. */
   night: NightRecord | null;
+  /** The calls the narrator has finished tonight (keys from `callKey`), so a resumed game continues at the right call. */
+  nightDone: string[];
   /** Questions the narrator must ask now (Hunter's shot, Cat, Sheep, mayor). */
   prompts: Prompt[];
   /** The players tied in the vote, while a revote is due. */
@@ -105,6 +107,7 @@ export function newSession(game: GameState): Session {
   return {
     state,
     night: startNightRecord(1, startOfNightFacts(state, 1)),
+    nightDone: [],
     prompts: [],
     revote: null,
     votedDay: null,
@@ -119,6 +122,7 @@ export type Command =
   | { kind: 'setMayor'; seat: number | null; how: 'elected' | 'named' }
   | { kind: 'nightAction'; action: NightAction }
   | { kind: 'markWoken'; seats: number[] }
+  | { kind: 'callDone'; key: string }
   | { kind: 'resolveDawn' }
   | { kind: 'ghostLetter'; seat: number; letter: string }
   | { kind: 'hunterShot'; seat: number; target: number }
@@ -239,6 +243,12 @@ function apply(s: Session, c: Command): Session | SessionError {
     case 'markWoken': {
       if (!isNight || !s.night) return 'wrongPhase';
       return { ...s, night: markWoken(s.night, c.seats) };
+    }
+
+    case 'callDone': {
+      if (!isNight || !s.night) return 'wrongPhase';
+      if (s.nightDone.includes(c.key)) return s;
+      return { ...s, nightDone: [...s.nightDone, c.key] };
     }
 
     case 'resolveDawn': {
@@ -363,7 +373,7 @@ function apply(s: Session, c: Command): Session | SessionError {
       if (s.prompts.some(blocking)) return 'promptsPending';
       const state = endDay(s.state);
       const night = phase.day + 1;
-      return log({ ...s, state, night: startNightRecord(night, startOfNightFacts(state, night)) }, { kind: 'nightStart' }, { night });
+      return log({ ...s, state, night: startNightRecord(night, startOfNightFacts(state, night)), nightDone: [] }, { kind: 'nightStart' }, { night });
     }
   }
 }
@@ -374,6 +384,11 @@ function apply(s: Session, c: Command): Session | SessionError {
 export function currentCalls(s: Session): NightCall[] {
   if (s.state.phase.kind !== 'night' || !s.night) return [];
   return planNight(s.state, s.night.night, s.night.facts);
+}
+
+/** A stable key for one holder's turn in a call (a step can hold several calls and holders). */
+export function callKey(call: NightCall, seat?: number): string {
+  return `${call.step}:${call.callId}${seat === undefined ? '' : `:${seat}`}`;
 }
 
 /** Players tapped at the start of tonight (step 0). */
@@ -412,6 +427,7 @@ function checkSession(x: unknown): Session | null {
   if (!Array.isArray(x['prompts']) || !x['prompts'].every((p) => isRecord(p) && typeof p['kind'] === 'string')) return null;
   if (x['revote'] !== null && !Array.isArray(x['revote'])) return null;
   if (x['votedDay'] !== null && typeof x['votedDay'] !== 'number') return null;
+  if (!Array.isArray(x['nightDone']) || !x['nightDone'].every((k) => typeof k === 'string')) return null;
   if (!Array.isArray(x['log']) || !x['log'].every((e) => isRecord(e) && isRecord(e['at']) && isRecord(e['event']))) return null;
   return { ...(x as unknown as SavedSession), past: [] };
 }
