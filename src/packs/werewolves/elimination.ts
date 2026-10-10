@@ -24,7 +24,8 @@ export type DeathCause =
   | 'hunter'
   | 'execution'
   | 'coup'
-  | 'ruleBreak';
+  | 'ruleBreak'
+  | 'parrotWord';
 
 export interface Death {
   seat: number;
@@ -126,7 +127,7 @@ export function eliminate(state: GameState, initial: Death[]): EliminationResult
   }
 
   const night = currentNight(s);
-  const clean = (d: Death) => d.cause === 'ruleBreak';
+  const clean = (d: Death) => d.cause === 'ruleBreak' || d.cause === 'parrotWord';
 
   for (const d of deaths) {
     const p = s.players[d.seat] as Player;
