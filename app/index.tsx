@@ -1,13 +1,6 @@
 /**
- * SetupScreen.tsx
- * ─────────────────────────────────────────────────────────────
- * Drop this file into your Werewolves/ project root.
- * Then in App.js (or App.tsx) replace everything with:
- *
- *   import SetupScreen from './SetupScreen';
- *   export default SetupScreen;
- *
- * Packages already included in Expo — nothing extra to install.
+ * Setup screen (first prototype).
+ * Will be replaced by the new setup flow from the App Spec (milestone 3).
  * ─────────────────────────────────────────────────────────────
  */
 
@@ -37,7 +30,7 @@ export default function SetupScreen() {
   // Fade animation used when switching steps
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
-  const fadeTransition = (callback) => {
+  const fadeTransition = (callback: () => void) => {
     Animated.sequence([
       Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
       Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
@@ -45,8 +38,8 @@ export default function SetupScreen() {
     setTimeout(callback, 150);
   };
 
-  const changeCount = (delta) => {
-    const next = Math.min(50, Math.max(4, playerCount + delta));
+  const changeCount = (delta: number) => {
+    const next = Math.min(50, Math.max(8, playerCount + delta));
     setPlayerCount(next);
     setPlayerNames(prev => {
       if (next > prev.length) return [...prev, ...Array(next - prev.length).fill('')];
