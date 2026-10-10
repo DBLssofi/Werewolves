@@ -53,6 +53,8 @@ export interface GameState {
   players: Player[];
   mayorSeat: number | null;
   phase: Phase;
+  /** Game-wide flags kept by the game pack (e.g. wolf powers lost, wolves sick). JSON-safe values. */
+  packState: Record<string, number | boolean | null>;
 }
 
 export type RoleLookup = (id: string) => RoleDefinition;

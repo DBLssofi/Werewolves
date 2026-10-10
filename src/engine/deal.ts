@@ -77,5 +77,6 @@ export function createGame(deal: Deal, settings: GameSettings, packId: string, l
     players: deal.entries.map((e, seat) => newPlayer(seat, e.name, e.roleId, lookup)),
     mayorSeat: null,
     phase: { kind: 'night', night: 1 },
+    packState: {},
   };
 }

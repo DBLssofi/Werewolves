@@ -218,3 +218,13 @@ export function planNight(state: GameState, night: number, facts: NightFacts): N
   }
   return calls;
 }
+
+/** The facts known at the start of a night, before anyone acts. */
+export function startOfNightFacts(state: GameState, night: number): NightFacts {
+  return {
+    prayed: false,
+    devilBlocked: [],
+    jailed: null,
+    wolvesSick: state.packState['wolvesSickNight'] === night,
+  };
+}

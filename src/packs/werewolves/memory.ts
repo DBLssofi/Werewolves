@@ -45,6 +45,14 @@ export const MEM = {
   newPrinceNight: 'newPrinceNight',
 } as const;
 
+/** Keys used in GameState.packState. */
+export const PACK = {
+  /** The wolves killed the Wise: every special wolf power is lost for good. */
+  wolfPowersLost: 'wolfPowersLost',
+  /** The night on which the wolves are sick (the night after eating the Diseased). */
+  wolvesSickNight: 'wolvesSickNight',
+} as const;
+
 function flag(p: Player, key: string): boolean {
   return p.memory[key] === true;
 }

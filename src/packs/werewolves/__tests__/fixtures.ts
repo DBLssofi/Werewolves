@@ -12,6 +12,7 @@ export function gameOf(roleIds: string[], night = 1): GameState {
     players: roleIds.map((id, seat) => newPlayer(seat, `P${seat}`, id, getRole)),
     mayorSeat: null,
     phase: { kind: 'night', night },
+    packState: {},
   };
 }
 

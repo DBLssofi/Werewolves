@@ -1,5 +1,5 @@
 import { NO_FACTS, type NightCall, type NightFacts } from '@/engine/night';
-import { planNight } from '../nightPlan';
+import { planNight, startOfNightFacts } from '../nightPlan';
 import { gameOf, kill, withPlayer } from './fixtures';
 import type { GameState } from '@/engine/state';
 
@@ -235,4 +235,10 @@ describe('special cases', () => {
     const g = withPlayer(gameOf(CORE), 6, { infected: true, team: 'werewolf' });
     expect(call(planNight(g, 2, NO_FACTS), 'pack')?.acting).toEqual([0, 1, 6]);
   });
+});
+
+test('the wolves are sick on the night recorded at the previous dawn', () => {
+  const g = { ...gameOf(CORE), packState: { wolvesSickNight: 4 } };
+  expect(startOfNightFacts(g, 4).wolvesSick).toBe(true);
+  expect(startOfNightFacts(g, 5).wolvesSick).toBe(false);
 });
