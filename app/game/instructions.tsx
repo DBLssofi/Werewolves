@@ -18,7 +18,7 @@ export default function Instructions() {
   return (
     <Screen top={<TopBar title={t('instructions.title')} backLabel={t('common.back')} />} bottom={<Button label={t('instructions.nightFalls')} onPress={() => router.replace('/game/night')} />}>
       <View style={{ marginTop: 60, gap: 16 }}>
-        <Txt variant="caps" tone="muted">
+        <Txt variant="label" tone="muted">
           {t('instructions.read')}
         </Txt>
         <Panel>

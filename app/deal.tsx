@@ -24,7 +24,7 @@ export default function DealScreen() {
     return (
       <Screen bottom={<Button label={t('common.ok')} onPress={() => router.replace('/review')} />}>
         <View style={{ marginTop: 220 }}>
-          <Txt variant="caps" tone="muted" center>
+          <Txt variant="label" tone="muted" center>
             {t('deal.done')}
           </Txt>
         </View>
@@ -39,7 +39,7 @@ export default function DealScreen() {
         bottom={<Button label={t('common.ok')} onPress={() => setStage('pick')} />}
       >
         <View style={{ marginTop: 200 }}>
-          <Txt variant="caps" tone="muted" center>
+          <Txt variant="label" tone="muted" center>
             {seat === 0 ? t('deal.pass') : t('deal.passNext')}
           </Txt>
         </View>
@@ -50,7 +50,7 @@ export default function DealScreen() {
   if (stage === 'pick') {
     return (
       <Screen top={<TopBar title={t('deal.seatOf', { n: seat + 1, total })} backLabel={t('common.back')} />} moon="none">
-        <Txt variant="caps" tone="muted" center>
+        <Txt variant="label" tone="muted" center>
           {t('deal.pick')}
         </Txt>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.md }}>
@@ -84,7 +84,7 @@ export default function DealScreen() {
     return (
       <Screen top={<TopBar title={t('deal.seatOf', { n: seat + 1, total })} backLabel={t('common.back')} onBack={() => setStage('pick')} />} bottom={<Button label={t('common.next')} onPress={submit} />}>
         <View style={{ marginTop: 160, gap: space.lg }}>
-          <Txt variant="caps" tone="muted" center>
+          <Txt variant="label" tone="muted" center>
             {t('deal.name')}
           </Txt>
           <TextInput

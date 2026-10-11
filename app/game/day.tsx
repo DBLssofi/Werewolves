@@ -102,7 +102,7 @@ export default function Day() {
       {/* Day powers, before the vote */}
       {!voted && !s.revote && (
         <Panel>
-          <Txt variant="caps" tone="muted">
+          <Txt variant="label" tone="muted">
             {t('day.powers')}
           </Txt>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
@@ -164,7 +164,7 @@ export default function Day() {
       {/* The vote */}
       {!voted && !noVote && !blockingPrompts && (
         <Panel>
-          <Txt variant="caps" tone="muted">
+          <Txt variant="label" tone="muted">
             {s.revote ? t('day.revoteTitle') : t('day.voteTitle')}
           </Txt>
           {mustVote.map((v) => (
@@ -180,7 +180,7 @@ export default function Day() {
           ))}
           {voter !== null && (
             <>
-              <Txt variant="caps" tone="gold">
+              <Txt variant="label" tone="gold">
                 {name(voter)} {t('day.votesFor')}
               </Txt>
               <SeatGrid

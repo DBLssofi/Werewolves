@@ -10,7 +10,7 @@ export default function Mode() {
   return (
     <Screen top={<TopBar title="" backLabel={t('common.back')} onBack={() => router.back()} />}>
       <View style={{ marginTop: 200, gap: 40, alignItems: 'center' }}>
-        <Txt variant="caps" tone="muted" center>
+        <Txt variant="label" tone="muted" center>
           {t('mode.title')}
         </Txt>
         <View style={{ gap: 8, alignItems: 'center' }}>
@@ -28,6 +28,7 @@ export default function Mode() {
         <View style={{ gap: 8, alignItems: 'center' }}>
           <Button
             label={t('mode.custom')}
+            kind="secondary"
             onPress={() => {
               updateDraft({ mode: 'custom' });
               router.push('/setup/roles');

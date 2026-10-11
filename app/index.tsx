@@ -46,7 +46,7 @@ export default function Home() {
       <View style={{ alignItems: 'center', marginTop: 40 }}>
         <Moon size={190} />
         <Gap />
-        <Txt variant="caps" tone="muted" center>
+        <Txt variant="label" tone="muted" center>
           {t('app.tagline').toUpperCase()}
         </Txt>
         <Txt variant="title" tone="accent" center style={{ fontSize: 48 }}>

@@ -80,7 +80,7 @@ export default function Dawn() {
         const said = whispered.find((e) => e.event.kind === 'ghostLetter' && e.event.seat === g);
         return (
           <Panel key={g}>
-            <Txt variant="caps" tone="muted">
+            <Txt variant="label" tone="muted">
               {t('dawn.ghost', { name: name(g) })}
             </Txt>
             {said && said.event.kind === 'ghostLetter' ? (
@@ -111,7 +111,7 @@ export default function Dawn() {
           </Panel>
         );
       })}
-      <Txt variant="caps" tone="muted">
+      <Txt variant="label" tone="muted">
         {t('dawn.read')}
       </Txt>
       <Panel>

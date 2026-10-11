@@ -97,7 +97,7 @@ export function TopBar(props: { title: string; onBack?: () => void; backLabel: s
   return (
     <View style={styles.topBar}>
       <IconButton label={props.backLabel} onPress={props.onBack} glyph="‹" hidden={!props.onBack} />
-      <Txt variant="caps" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+      <Txt variant="label" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
         {props.title}
       </Txt>
       <IconButton label={props.menuLabel ?? ''} onPress={props.onMenu} glyph="☰" hidden={!props.onMenu} />
@@ -134,9 +134,15 @@ export function Button(props: {
       style={({ pressed }) => [
         styles.button,
         size === 'medium' && styles.buttonMedium,
+        // Primary: solid red; when it can't be pressed yet it dims to a dark red, so it never looks like a secondary button.
+        // Secondary: outlined, no fill, so it reads as "another option" rather than "not available".
         kind === 'primary'
-          ? { backgroundColor: disabled ? color.bgSurface : pressed ? color.accentPressed : color.accent }
-          : { backgroundColor: pressed ? color.bgSecondaryPressed : color.bgSecondary, borderWidth: 1, borderColor: color.border },
+          ? { backgroundColor: disabled ? color.accentDisabled : pressed ? color.accentPressed : color.accent }
+          : {
+              backgroundColor: pressed ? color.bgSecondaryPressed : 'transparent',
+              borderWidth: 1.5,
+              borderColor: disabled ? color.border : color.borderStrong,
+            },
         style,
       ]}
     >
@@ -268,7 +274,7 @@ export function HoldToReveal(props: { hint: string; children: ReactNode }) {
     <Pressable onPressIn={() => setOpen(true)} onPressOut={() => setOpen(false)} accessibilityRole="button" accessibilityLabel={props.hint} style={styles.hold}>
       {open ? props.children : <RoleCard face="back" size="large" />}
       {!open && (
-        <Txt variant="caps" tone="muted" center style={{ marginTop: space.lg }}>
+        <Txt variant="label" tone="muted" center style={{ marginTop: space.lg }}>
           {props.hint}
         </Txt>
       )}
@@ -288,7 +294,8 @@ export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.bgApp },
   cornerMoon: { position: 'absolute', top: -150, start: -160 },
   content: { paddingHorizontal: space.lg, paddingVertical: space.lg, gap: space.lg },
-  bottom: { paddingHorizontal: space.lg, paddingBottom: space.lg, paddingTop: space.sm, gap: space.md, alignItems: 'center' },
+  // Actions at the bottom run the full width: easier to hit one-handed in the dark.
+  bottom: { paddingHorizontal: space.lg, paddingBottom: space.lg, paddingTop: space.sm, gap: space.md, alignItems: 'stretch' },
   topBar: { height: 56, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   icon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   button: {

@@ -89,7 +89,7 @@ export default function Night() {
         }
       >
         <View style={{ marginTop: 160 }}>
-          <Txt variant="caps" tone="muted" center>
+          <Txt variant="label" tone="muted" center>
             {t('night.nobodyActs')}
           </Txt>
         </View>
@@ -102,7 +102,7 @@ export default function Night() {
     const wildChildren = state.players.filter((p) => p.alive && p.roleId === 'wild_child' && p.memory['toldTurnedNight'] === night);
     return (
       <Screen top={<GameTopBar title={t('night.title', { n: night })} />} bottom={<Button label={t('common.next')} onPress={() => finish([])} />}>
-        <Txt variant="caps" tone="muted">
+        <Txt variant="label" tone="muted">
           {t('night.taps')}
         </Txt>
         <Panel>
@@ -132,7 +132,7 @@ export default function Night() {
       <Screen top={<GameTopBar title={callName} />} bottom={<Button label={t('common.next')} onPress={() => finish([])} />}>
         <Txt variant="heading">{callName}</Txt>
         <Txt tone="gold">{script}</Txt>
-        <Txt variant="caps" tone="muted">
+        <Txt variant="label" tone="muted">
           {t('night.aloud')}
         </Txt>
       </Screen>
@@ -184,7 +184,7 @@ export default function Night() {
       <Txt variant="heading">{title}</Txt>
       <Txt tone="gold">{script}</Txt>
       <Panel>
-        <Txt variant="caps" tone="muted">
+        <Txt variant="label" tone="muted">
           {acting ? t('night.acting') : t('night.crossed')}
         </Txt>
         <Txt variant="option">{woken.map(name).join(', ')}</Txt>
@@ -204,7 +204,7 @@ export default function Night() {
       )}
       {acting && activeForm && !done && (
         <>
-          <Txt variant="caps" tone="muted">
+          <Txt variant="label" tone="muted">
             {activeForm.input === 'role' ? t('night.pickRole') : activeForm.input === 'two' ? t('night.pickTwo') : activeForm.input === 'one' ? `${t(`forms.${activeForm.id}`)} · ${t('night.pickOne')}` : t(`forms.${activeForm.id}`)}
           </Txt>
           {activeForm.input === 'role' && seat !== undefined && (

@@ -8,7 +8,7 @@ import { useNames } from '@/ui/useNames';
 function Group(props: { title: string; children: React.ReactNode }) {
   return (
     <View style={{ gap: 4 }}>
-      <Txt variant="caps" tone="muted">
+      <Txt variant="label" tone="muted">
         {props.title}
       </Txt>
       {props.children}

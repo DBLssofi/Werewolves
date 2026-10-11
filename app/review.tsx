@@ -17,7 +17,7 @@ export default function Review() {
     const e = deal.entries[seat];
     return (
       <Screen top={<TopBar title={e?.name ?? ''} backLabel={t('common.back')} />} bottom={<Button label={t('review.back')} onPress={() => setMode('list')} />}>
-        <Txt variant="caps" tone="muted" center>
+        <Txt variant="label" tone="muted" center>
           {t('review.handOver', { name: e?.name ?? '' })}
         </Txt>
         <HoldToReveal hint={t('deal.hold')}>

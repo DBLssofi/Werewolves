@@ -31,14 +31,14 @@ export default function Over() {
     >
       <View style={{ alignItems: 'center' }}>
         <Moon size={120} />
-        <Txt variant="caps" tone="muted" center>
+        <Txt variant="label" tone="muted" center>
           {t('over.title')}
         </Txt>
         <Txt variant="heading" tone="accent" center>
           {headline}
         </Txt>
       </View>
-      <Txt variant="caps" tone="muted">
+      <Txt variant="label" tone="muted">
         {t('over.roles')}
       </Txt>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: space.sm }}>
@@ -52,7 +52,7 @@ export default function Over() {
           />
         ))}
       </View>
-      <Txt variant="caps" tone="muted">
+      <Txt variant="label" tone="muted">
         {t('over.log')}
       </Txt>
       <Panel>

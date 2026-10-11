@@ -52,12 +52,18 @@ export default function Roles() {
       <View style={{ marginTop: 80, gap: 4 }}>
         <Txt variant="option">{t('custom.count', { chosen: cards, players: draft.players })}</Txt>
         <Txt variant="small" tone="muted">
-          {t('custom.balance', { score: balance > 0 ? `+${balance}` : balance })} · {t('custom.suggested', { wolves: suggestedWolves(draft.players) })}
+          {t('custom.balance', {
+            score: balance > 0 ? `+${balance}` : balance,
+            verdict: t(balance > 0 ? 'custom.balanceVillage' : balance < 0 ? 'custom.balanceWolves' : 'custom.balanceEven'),
+          })}
+        </Txt>
+        <Txt variant="small" tone="muted">
+          {t('custom.suggested', { wolves: suggestedWolves(draft.players) })}
         </Txt>
       </View>
       {problems.length > 0 && cards > 0 && (
         <Panel>
-          <Txt variant="caps" tone="accent">
+          <Txt variant="label" tone="accent">
             {t('custom.problems')}
           </Txt>
           {problems.map((p, i) => (
@@ -79,7 +85,7 @@ export default function Roles() {
       {editable &&
         GROUPS.map((g) => (
           <View key={g} style={{ gap: 8 }}>
-            <Txt variant="caps" tone="muted">
+            <Txt variant="label" tone="muted">
               {t(`custom.groups.${g}`)}
             </Txt>
             {ROLES.filter((r) => r.group === g).map((r) => (

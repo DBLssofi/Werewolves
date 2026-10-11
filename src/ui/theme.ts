@@ -1,6 +1,13 @@
 /**
  * Design tokens. Mirrors the Figma file "Werewolf game" (collections Primitives / Color / Size,
  * and the text styles). Change a value here and in Figma together.
+ *
+ * Design pass 1 (2026-10-11), not yet copied to Figma:
+ * - Cinzel is kept for titles, role names and the card mark only. Everything the narrator reads aloud
+ *   or taps (options, names, announcements) is Inter, because Cinzel has no lowercase.
+ * - "caps" became "label": sentence case, no wide letter spacing (easier to read, and Arabic letters
+ *   must stay joined).
+ * - New dusk400 for the secondary-button outline; disabled primary buttons use blood900.
  */
 import type { TextStyle } from 'react-native';
 
@@ -15,6 +22,7 @@ const primitives = {
   blood700: '#931515',
   blood600: '#CB3530',
   dusk500: '#474B6B',
+  dusk400: '#6E7299',
   sand500: '#B89B6D',
   sand200: '#E6D3A3',
   grey500: '#555555',
@@ -41,6 +49,10 @@ export const color = {
   textOnAccent: primitives.white,
   textDisabled: primitives.grey500,
   border: primitives.ink800,
+  /** Outline of secondary buttons (4.0:1 against bgApp). */
+  borderStrong: primitives.dusk400,
+  /** Primary button that cannot be pressed yet (label stays readable: textMuted on it is 5.4:1). */
+  accentDisabled: primitives.blood900,
 };
 
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, x2: 32 };
@@ -58,14 +70,14 @@ export const font = {
 const ls = (percent: number, size: number) => (percent * size) / 100;
 
 export const text: Record<
-  'title' | 'heading' | 'option' | 'card' | 'caps' | 'body' | 'small' | 'buttonLarge' | 'buttonMedium',
+  'title' | 'heading' | 'option' | 'card' | 'label' | 'body' | 'small' | 'buttonLarge' | 'buttonMedium',
   TextStyle
 > = {
   title: { fontFamily: font.display, fontSize: 40, letterSpacing: ls(-4, 40) },
   heading: { fontFamily: font.display, fontSize: 28, letterSpacing: ls(-2, 28) },
-  option: { fontFamily: font.display, fontSize: 20, letterSpacing: ls(-1.9, 20), lineHeight: 30 },
+  option: { fontFamily: font.bodyMedium, fontSize: 18, lineHeight: 26 },
   card: { fontFamily: font.display, fontSize: 13, letterSpacing: ls(6, 13) },
-  caps: { fontFamily: font.body, fontSize: 16, letterSpacing: ls(20, 16) },
+  label: { fontFamily: font.bodyMedium, fontSize: 15, lineHeight: 22 },
   body: { fontFamily: font.body, fontSize: 16, lineHeight: 24 },
   small: { fontFamily: font.body, fontSize: 14, lineHeight: 20 },
   buttonLarge: { fontFamily: font.bodyBold, fontSize: 20 },

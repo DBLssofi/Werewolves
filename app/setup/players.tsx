@@ -14,7 +14,7 @@ export default function Players() {
       bottom={<Button label={t('common.confirm')} onPress={() => router.push('/setup/settings')} />}
     >
       <View style={{ marginTop: 160, alignItems: 'center', gap: 24 }}>
-        <Txt variant="caps" tone="muted" center>
+        <Txt variant="label" tone="muted" center>
           {t('players.title')}
         </Txt>
         <Counter
